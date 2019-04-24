@@ -1,6 +1,7 @@
 # PHPAnalysis php 无组件中文分词类
 
-#一、比较重要的成员变量
+<pre>
+一、比较重要的成员变量
 $resultType   = 1        生成的分词结果数据类型(1 为全部， 2为 词典词汇及单个中日韩简繁字符及英文， 3 为词典词汇及英文)
                                     这个变量一般用 SetResultType( $rstype ) 这方法进行设置。
 $notSplitLen  = 5        切分句子最短长度
@@ -9,7 +10,7 @@ $differMax    = false    使用最大切分模式对二元词进行消岐
 $unitWord     = true     尝试合并单字(即是新词识别)
 $differFreq   = false    使用热门词优先模式进行消岐
 
-#二、主要成员函数列表
+二、主要成员函数列表
 1、public function __construct($source_charset='utf-8', $target_charset='utf-8', $load_all=true, $source='') 
 函数说明：构造函数
 参数列表：
@@ -82,3 +83,4 @@ $target_file   目标文件(如果不指定，则为当前词典)
 参数列表：
 $targetfile  目标文件
 返回值：void
+</pre>
