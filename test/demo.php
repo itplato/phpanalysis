@@ -61,7 +61,7 @@ if($str != '')
     {
         print_memory('执行分词', $memory_info);
         $okresult = '';
-        $pa->LoadDict( "dict/base_dic_seo.dic" );
+        $pa->LoadDict( "../PhpAnalysis/dict/base_dic_seo.dic" );
         $rs = $pa->GetSeoResult( $str, 'rank' );
         foreach($rs as $w => $c)
         {
@@ -76,15 +76,16 @@ if($str != '')
         $pa->SetOptimizeParams( $do_multi, $do_unit, $do_fork, FALSE );
     
         $pa->SetSource( $str );
-        $pa->StartAnalysis();
+        $pa->StartAnalysis( TRUE );
         print_memory('执行分词', $memory_info);
 
-        /*
-        $words = $pa->GetFinallyIndex( 'rank' );
-        $okresult = '';
-        foreach($words as $w => $r )  $okresult .= "{$w}/{$r} ";
-        */
-        $okresult = $pa->GetFinallyResult(' ', $do_prop);
+        
+        //$words = $pa->GetFinallyIndex( 'rank' );
+        $words = $pa->GetFinallyKeywords(20, 'rank');
+        $rank_result = '';
+        foreach($words as $w => $r )  $rank_result .= "{$w}/{$r} ";
+        
+        $str_result = $pa->GetFinallyResult(' ', $do_prop);
         print_memory('输出分词结果', $memory_info);
     
         $pa_foundWordStr = $pa->GetNewWrods();
@@ -124,10 +125,10 @@ button { font-size:14px; }
 <tr>
     <td>    
 <h3>PhpAnalysis php无组件分词类演示 <a href="dictionary-builder.php"><span style="font-size:14px">[词典管理]</span></a></h3>
-<hr size='1' />
+<hr size='1'>
 
 <form id="form1" name="form1" method="post" action="?ac=done" style="margin:0px;padding:0px;line-height:24px;">
-  <b>源文本：</b> <br/>
+  <b>源文本：</b> <br>
     <textarea name="source" style="width:98%;height:150px;font-size:14px;"><?php echo (isset($_POST['source']) ? $_POST['source'] : $teststr); ?></textarea>
     <br/>
     <label><input type='checkbox' name='do_fork' value='1' <?php echo ($do_fork ? "checked='checked'" : ''); ?>/>岐义处理</label>
@@ -140,14 +141,15 @@ button { font-size:14px; }
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <button type="reset" name="Submit2">重设表单数据</button>
 </form>
-<br />
-<textarea name="result" id="result" style="width:98%;height:120px;font-size:14px;color:#555"><?php echo (isset($okresult) ? $okresult : ''); ?></textarea>
-<br /><br />
-<b>调试信息：</b>
-<hr />
-<font color='blue'>字串长度：</font><?php echo $slen; ?>K <font color='blue'>自动识别词：</font><?php echo (isset($pa_foundWordStr)) ? $pa_foundWordStr : ''; ?><br />
-<hr />
-<font color='blue'>内存占用及执行时间：</font>(表示完成某个动作后正在占用的内存)<hr />
+<br>分词结果：<br>
+<textarea name="result" id="result" style="width:98%;height:150px;font-size:14px;color:#555"><?php echo (isset($str_result) ? $str_result : ''); ?></textarea>
+<br>权重TF-IDF试验：<br>
+<textarea name="result" id="result" style="width:98%;height:60px;font-size:14px;color:#555"><?php echo (isset($rank_result) ? $rank_result : ''); ?></textarea>
+<br><b>调试信息：</b>
+<hr>
+<font color='blue'>字串长度：</font><?php echo $slen; ?>K <font color='blue'>自动识别词：</font><?php echo (isset($pa_foundWordStr)) ? $pa_foundWordStr : ''; ?><br>
+<hr>
+<font color='blue'>内存占用及执行时间：</font>(表示完成某个动作后正在占用的内存)<hr>
 <?php echo $memory_info; ?>
 总用时：<?php echo $endtime; ?> 秒
 </td>
