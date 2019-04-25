@@ -101,12 +101,12 @@ string $target_file   目标文件(如果不指定，则为当前打开的词典
 string $targetfile  目标文件
 返回值：void
 </pre>
-三、演示例子
+三、演示实例子
 -------------------
 * 常规分词
 ```php
 <?php
-require_once '../Phpanalysis/Phpanalysis.php';
+require_once 'Phpanalysis/Phpanalysis.php';
 header(‘content-type:text/html;charset=utf-8’);
 echo "<xmp>";
 
@@ -130,5 +130,34 @@ echo $split_str;
 //获取按权重排序词条
 $arr = $pa->GetFinallyKeywords( 10, 'rank' );
 print_r( $arr );
+
+```
+* 重新生成词典
+```php
+<?php
+require_once 'Phpanalysis/Phpanalysis.php';
+header(‘content-type:text/html;charset=utf-8’);
+
+$pa = new PhpAnalysis();
+$pa->MakeDict( "Phpanalysis/dict/not-build/base_dic_full.txt" );
+
+echo "OK";
+
+```
+* SEO提词器(使用这种切分模式支持英文词汇，但是这个纯粹是切词，不在词典的词条会自动放弃)
+```php
+$str = "2010年1月，美国国际消费电子展 (CES)上，联想将展出一款基于ARM架构的新产品，这有可能是
+       传统四大PC厂商首次推出的基于ARM架构的消费电子产品，也意味着在移动互联网和产业融合趋势下，
+       传统的PC芯片霸主英特尔正在遭遇挑战。";
+
+//初始化(如果同一进程需多次分词，不要初始化多个实例，否则无法利用内存缓存词典)
+$pa = new PhpAnalysis();
+$pa->LoadDict( "Phpanalysis/dict/base_dic_seo.dic" );
+
+
+$words = $pa->GetSeoResult( "rank" );
+
+echo '<xmp>';
+print_r( $words );
 
 ```
