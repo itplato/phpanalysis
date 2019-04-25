@@ -3,10 +3,16 @@ PHPAnalysis php中文无组件分词类
 一、比较重要的成员变量
 --------------------------
 <pre>
-$resultType   = 1        生成的分词结果数据类型(1 为全部， 2为 词典词汇及单个中日韩简繁字符及英文及[.@#+-])
-                                    这个变量可以用 SetResultType( $rstype ) 这方法进行设置。
+$notSplitLen  = 5       初切分句子的最短长度
 
-$notSplitLen  = 5        初切分句子的最短长度
+//这个变量可以用 SetResultType( $rstype ) 这方法进行设置。
+$resultType   = 1       生成的分词结果数据类型(1 为全部， 2为 词典词汇及单个中日韩简繁字符及英文及[.@#+-])
+
+//这几个变量可以直接用 SetOptimizeParams() 统一设置
+$differMax = FALSE      使用最大切分模式对二元词进行消岐
+$unitWord = TRUE        尝试合并单字为新词
+$differFreq = FALSE     使用热门词优先模式进行消岐
+$optimizeResult = TRUE   对分词后的结果尝试优化
 </pre>
 二、主要成员函数列表
 ------------------------
