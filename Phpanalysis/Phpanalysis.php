@@ -1032,7 +1032,7 @@ class PhpAnalysis
                 if( strlen($nw)==4 )
                 {
                     $winfos = $this->GetWordInfos($nw);
-                    if(isset($winfos[1]) && in_array( $winfos[1], array('r', 'c', 'd', 'p') ) )
+                    if(isset($winfos[1]) && in_array( $winfos[1], array('r', 'c', 'd', 'p', 't') ) )
                     {
                          $is_rs = TRUE;
                     }
@@ -1041,7 +1041,7 @@ class PhpAnalysis
                         $newarr[$j] = array('w' => $cw.$nw, 't' => 11);
                         if( !isset($this->newWords[ $newarr[$j]['w'] ]) )
                         {
-                            $this->SetWordInfos($newarr[$j]['w'], array($this->rankStep * 2, 'nr'));
+                            $this->SetWordInfos($newarr[$j]['w'], array($this->rankStep * 3, 'nr'));
                         }
                         //为了防止错误，保留合并前的姓名
                         if( $this->differMax )
@@ -1071,7 +1071,7 @@ class PhpAnalysis
                     }
                     if( !isset($this->newWords[ $newarr[$j]['w'] ]) )
                     {
-                         $this->SetWordInfos($newarr[$j]['w'], array($this->rankStep * 2, 'nr'));
+                         $this->SetWordInfos($newarr[$j]['w'], array($this->rankStep * 3, 'nr'));
                     }
                     $j++; $i++; $ischeck = TRUE;
                 }

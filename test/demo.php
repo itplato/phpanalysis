@@ -115,7 +115,7 @@ ARM内部人士透露，11月5日，ARM高级副总裁lanDrew参观了联想研�
 <html>
 <head>
 <meta charset="utf-8">
-<title>PhpAnalysis php无组件分词类演示</title>
+<title>PhpAnalysis分词测试</title>
 <style>
 button { font-size:14px; }
 </style>
@@ -124,7 +124,7 @@ button { font-size:14px; }
 <table width='90%' align='center'>
 <tr>
     <td>    
-<h3>PhpAnalysis php无组件分词类演示 <a href="dictionary-builder.php"><span style="font-size:14px">[词典管理]</span></a></h3>
+<h3>PhpAnalysis分词测试 &nbsp; <a href="dictionary-builder.php"><span style="font-size:14px">[词典管理]</span></a></h3>
 <hr size='1'>
 
 <form id="form1" name="form1" method="post" action="?ac=done" style="margin:0px;padding:0px;line-height:24px;">
