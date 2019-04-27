@@ -107,6 +107,7 @@ string $target_file   目标文件(如果不指定，则为当前打开的词典
 string $targetfile  目标文件
 string $dicfile     原字典文件（如果为空，则默认用类加载的主词典）
 返回值：void
+</pre>
 * GetWordInfos( $key )
 <pre>
 函数说明：获取主词典某词条的属性
