@@ -6,33 +6,41 @@ header('Content-Type: text/html; charset=utf-8');
 require_once '../Phpanalysis/Phpanalysis.php';
 $normalDicSource = '../Phpanalysis/dict/not-build/base_dic_full.txt';
 $seoDicSource = '../Phpanalysis/dict/not-build/base_dic_seo.txt';
+$enDicSource = '../Phpanalysis/dict/not-build/english.txt';
 $normalDic = '../Phpanalysis/dict/base_dic_full.dic';
 $seoDic = '../Phpanalysis/dict/base_dic_seo.dic';
+$enDic = '../Phpanalysis/dict/base_dic_english.dic';
 
 $ac = empty($_POST['ac']) ? '' : $_POST['ac'];
 $dictype = empty($_POST['dictype']) ? '' : $_POST['dictype'];
 
 if( $ac == 'make' )
 {
-    $targetfile = ($dictype==1 ? $normalDic  : $seoDic);
+    $targetfile = ($dictype==1 ? $normalDic  : ( $dictype==2 ? $seoDic : $enDic) );
     $sourcefile = $_POST['sourcefile'];
     
     PhpAnalysis::$loadInit = false;
     $pa = new PhpAnalysis('utf-8', 'utf-8');
-    $pa->MakeDict( $sourcefile, $targetfile );
+    if( $dictype==3 )
+        $pa->MakeDict( $sourcefile, $targetfile, 'ascii' );
+    else
+        $pa->MakeDict( $sourcefile, $targetfile );
     
     echo "完成词典创建: {$sourcefile} =&gt; {$targetfile} ";
     exit();
 }
 else if( $ac=='export' )
 {
-    $dicfile = ($dictype==1 ? $normalDic : $seoDic);
+    $dicfile = ($dictype==1 ? $normalDic : ( $dictype==2 ? $seoDic : $enDic));
     $sourcefile = $_POST['sourcefile'];
     
     PhpAnalysis::$loadInit = false;
     $pa = new PhpAnalysis('utf-8', 'utf-8');
-    $pa->LoadDict( $dicfile );
-    $pa->ExportDict( $sourcefile );
+    //$pa->LoadDict( $dicfile );
+    if( $dictype==3 )
+        $pa->ExportDict( $sourcefile, $dicfile, 'ascii' );
+    else
+        $pa->ExportDict( $sourcefile, $dicfile );
     
     echo "完成反编译词典文件，生成的文件为：{$sourcefile}！";
     exit();
@@ -73,12 +81,10 @@ else if( $ac=='export' )
  }
 </style>
 <script language="javascript">
-    var waitfile = "<?php echo $seoDicSource ?>";
-    function changeReadFile()
+    var files = ["<?php echo $normalDicSource; ?>", "<?php echo $seoDicSource ?>", "<?php echo $enDicSource; ?>"];
+    function changeReadFile( ctype )
     {
-        var  tmp = document.getElementById('sourcefile').value;
-        document.getElementById('sourcefile').value = waitfile;
-        waitfile = tmp;
+        document.getElementById('sourcefile').value = files[ctype];
     }
 </script>
 </header>
@@ -86,7 +92,8 @@ else if( $ac=='export' )
 
 <div class="hgroup">
 <div class="title">
-    根据源文件创建分词词典：<span class="info">(源文件词条格式： 词条,频率,词性,行业标识,顺序id 后两个值用于研究用途，可以为空值)</span>
+根据源文件创建分词词典：<span class="info">(源文件词条格式： 词条,频率,词性,行业标识,顺序id 后两个值用于研究用途，可以为空值)</span> 
+&nbsp; &nbsp; &nbsp;<a href='demo.php'>[返回测试]</a>
 </div>
 <form name="form1" action="?" method="POST" enctype="application/x-www-form-urlencoded" target="sta">
     <input type="hidden" name="ac" value="make">
@@ -94,8 +101,9 @@ else if( $ac=='export' )
         源文件： <input type="text" name="sourcefile" id="sourcefile" value="<?php echo $normalDicSource; ?>" style="width:680px;">
     </div>
     <div class="row">
-    创建词典类型：<label><input type="radio" name="dictype" onchange="changeReadFile()" value="1" checked> 通用分词(dict/base_dic_full.dic)</label> 
-    <label><input type="radio" name="dictype" value="2" onchange="changeReadFile()"> SEO提词(dict/base_dic_seo.dic)</label>
+    创建词典类型：<label><input type="radio" name="dictype" onchange="changeReadFile(0)" value="1" checked> 通用分词(base_dic_full.dic)</label> 
+    <label><input type="radio" name="dictype" value="2" onchange="changeReadFile(1)"> 切词词典(base_dic_seo.dic)</label>
+    <label><input type="radio" name="dictype" value="3" onchange="changeReadFile(2)"> 英语词典(base_dic_english.dic)</label>
     </div>
     <div class="row">
         <button type="submit">开始操作</button>
@@ -111,8 +119,9 @@ else if( $ac=='export' )
     <input type="hidden" name="ac" value="export">
     <div class="row">
         词典类型： 
-        <label><input type="radio" name="dictype" value="1" checked> 通用分词(dict/base_dic_full.dic)</label> 
-        <label><input type="radio" name="dictype" value="2"> SEO提词(dict/base_dic_seo.dic)</label>
+        <label><input type="radio" name="dictype" value="1" checked> 通用分词(base_dic_full.dic)</label> 
+        <label><input type="radio" name="dictype" value="2"> 切词词典(base_dic_seo.dic)</label>
+        <label><input type="radio" name="dictype" value="3"> 英语词典(base_dic_english.dic)</label>
     </div>
     <div class="row">
         保存源文件： <input type="text" name="sourcefile" value="../Phpanalysis/dict/not-build/mydic.txt" style="width:650px;">

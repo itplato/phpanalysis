@@ -66,6 +66,11 @@ class PhpAnalysis
     public $mainDicInfos = array();
     public $mainDicFile = 'dict/base_dic_full.dic';
     
+    //英语词典
+    public $enDicHand = FALSE;
+    public $enDicInfos = array();
+    public $enDicFile = 'dict/base_dic_english.dic';
+    
     //主词典词语最大长度 x / 2
     private $dicWordMax = 16;
     
@@ -84,7 +89,7 @@ class PhpAnalysis
     //系统识别或合并的新词
     public $newWords = array();
     
-    //英语高频词
+    //英语高频词(暂时不用这个，因为这个在英语词典中本身有体现)
     public $enBadWordFile = 'dict/english-bad-words.txt';
     public $enBadWords = array();
     
@@ -127,6 +132,7 @@ class PhpAnalysis
     {
         $this->SetSource( $source, $source_charset, $target_charset );
         $this->mainDicFile = dirname(__FILE__).'/'.$this->mainDicFile;
+        $this->enDicFile = dirname(__FILE__).'/'.$this->enDicFile;
         $this->addonDicFile = dirname(__FILE__).'/'.$this->addonDicFile;
         //self::$loadInit  这个值默认是TRUE，这里仍然使用这个值仅是为了兼容之前版本
         if( self::$loadInit && $load_dict ) $this->LoadDict();
@@ -137,9 +143,11 @@ class PhpAnalysis
     */
     function __destruct()
     {
-        if( $this->mainDicHand !== FALSE )
-        {
+        if( $this->mainDicHand !== FALSE ) {
             @fclose( $this->mainDicHand );
+        }
+        if( $this->enDicHand !== FALSE ) {
+            @fclose( $this->enDicHand );
         }
     }
     
@@ -180,51 +188,89 @@ class PhpAnalysis
         return ($h % $this->mask_value);
     }
     
+   /***
+    * 从词典里读取一个hash对应的词条(返回是这个hash对应的一组词)
+    * @param $keynum  由key生成的hash
+    * @return array $data
+    */
+    public function _dict_read($fp, $keynum)
+    {
+        $move_pos = $keynum * 8;
+        fseek($fp, $move_pos, SEEK_SET);
+        $dat = fread($fp, 8);
+        $arr = unpack('I1s/n1l/n1c', $dat);
+        if( $arr['l'] == 0 ) {
+            return FALSE;
+        }
+        fseek($fp, $arr['s'], SEEK_SET);
+        $data = @unserialize(fread($fp, $arr['l']));
+        return $data;
+    }
+    
     /**
      * 从文件获得词
      * @param $key
      * @param $type (类型 word 或  key_groups)
-     * @return short int
+     * @return array(count, prop)
      */
     public function GetWordInfos( $key, $type='word' )
     {
-        
         //自动识别的词单独处理
-        if( isset($this->newWords[$key]) && $type='word' )
-        {
+        if( isset($this->newWords[$key]) && $type='word' ) {
             return $this->newWords[$key];
         }
         
-        if( !$this->mainDicHand )
-        {
+        if( !$this->mainDicHand ) {
             $this->mainDicHand = fopen($this->mainDicFile, 'r') or die("GetWordInfos Load Dict:{$this->mainDicFile} error!");
         }
+        
         $keynum = $this->_get_index( $key );
-        if( isset($this->mainDicInfos[ $keynum ]) )
-        {
+        if( isset($this->mainDicInfos[ $keynum ]) ) {
             $data = $this->mainDicInfos[ $keynum ];
+        }
+        else {
+            $data = $this->mainDicInfos[ $keynum ] = $this->_dict_read($this->mainDicHand, $keynum);
+        }
+        
+        if( !is_array($data) || !isset($data[$key]) )  {
+           return FALSE;
+        }
+        else {
+            return ($type=='word' ? $data[$key] : $data);
+        }
+    }
+    
+    /**
+     * 获取英语词汇属性
+     * @param $key 这个是小写的ascii词条
+     * @return array(count, prop)
+     */
+    public function GetEnWordInfos( $key )
+    {
+        //要求传入小写的ascii词条就可以，不必要这内部转，因为其它的处理逻辑本身要做这种转换操作
+        //$key  = strtolower($this->_iconv(UCS2, 'utf-8', $key));
+        
+        if( !$this->enDicHand ) {
+            $this->enDicHand = fopen($this->enDicFile, 'r') or die("GetEnWordInfos Load Dict:{$this->enDicFile} error!");
+        }
+        
+        $keynum = $this->_get_index( $key );
+        if( isset($this->enDicInfos[ $keynum ]) )
+        {
+            $data = $this->enDicInfos[ $keynum ];
         }
         else
         {
-            //rewind( $this->mainDicHand );
-            $move_pos = $keynum * 8;
-            fseek($this->mainDicHand, $move_pos, SEEK_SET);
-            $dat = fread($this->mainDicHand, 8);
-            $arr = unpack('I1s/n1l/n1c', $dat);
-            if( $arr['l'] == 0 )
-            {
-                return FALSE;
-            }
-            fseek($this->mainDicHand, $arr['s'], SEEK_SET);
-            $data = @unserialize(fread($this->mainDicHand, $arr['l']));
-            $this->mainDicInfos[ $keynum ] = $data;
-       }
-       if( !is_array($data) || !isset($data[$key]) ) 
-       {
-           return FALSE;
-       }
-
-       return ($type=='word' ? $data[$key] : $data);
+            $this->enDicInfos[ $keynum ] = $data  = $this->_dict_read($this->enDicHand, $keynum);
+        }
+        
+        if( !is_array($data) || !isset($data[$key]) ) 
+        {
+            return FALSE;
+        }
+        else {
+            return $data[$key];
+        }
     }
     
     /**
@@ -394,11 +440,13 @@ class PhpAnalysis
             fclose($fp);
             
             //英语坏词条(字典的英语词条应该都为小写)
+            /*
             $fp = fopen( dirname(__FILE__).'/'.$this->enBadWordFile , 'r');
             fgets($fp, 1024); //跳过第一行注解
             $str = fgets($fp, 10240);
             $this->enBadWords = explode(' ', $str);
             fclose($fp);
+            */
             
             
         }//load addDic
@@ -424,8 +472,8 @@ class PhpAnalysis
      */
      public function GetWordProperty($word)
      {
-        $this->CheckWordProperty();
-        return isset( $this->propertyResult[$word] ) ? $this->propertyResult[$word] : array($this->rankStep*10, 'xx');
+        $this->_check_word_property();
+        return isset( $this->propertyResult[$word] ) ? $this->propertyResult[$word] : array($this->rankStep*10, 'x');
      }
     
     /**
@@ -599,7 +647,7 @@ class PhpAnalysis
                                 $s++;
                         
                                 $this->simpleResult[$s]['w'] = $tmpw;
-                                $this->newWords[$tmpw] = 1;
+                                //$this->newWords[$tmpw] = 1;
                                 if( !isset($this->newWords[$tmpw]) )
                                 {
                                     $this->SetWordInfos($tmpw, array($this->rankStep, 'nb'));
@@ -1064,10 +1112,36 @@ class PhpAnalysis
                 {
                     //$tw = $smarr[$i+2]['w'];
                     $newarr[$j] = array('w' => $cw.$nw, 't' => 11);
+                    //第三个词
                     if( isset($smarr[$i+2]['w']) && strlen($smarr[$i+2]['w'])==2 && !isset($this->addonDic['s'][ $smarr[$i+2]['w'] ]) )
                     {
                         $newarr[$j]['w'] .= $smarr[$i+2]['w'];
+                        //第四个字
+                        if( isset($smarr[$i+3]['w']) )
+                        {
+                            if( strlen($smarr[$i+3]['w'])==2 && !isset($this->addonDic['s'][ $smarr[$i+3]['w'] ]) ) {
+                                $newarr[$j]['w'] .= $smarr[$i+3]['w'];
+                                $i++;
+                            }
+                            else if( strlen($smarr[$i+3]['w']) > 2 )
+                            {
+                                $winfos = $this->GetWordInfos($smarr[$i+3]['w']);
+                                if( isset($winfos[1]) && $winfos[1]=='nr' ) {
+                                    $newarr[$j]['w'] .= $smarr[$i+3]['w'];
+                                    $i++;
+                                }
+                            }
+                        }
                         $i++;
+                    }
+                    //如果后面的词是2-3个中文，要是词性还是人名(nr)，通常这是一个老外的名字
+                    else if( strlen($smarr[$i+2]['w']) > 2 && strlen($smarr[$i+2]['w']) < 7   )
+                    {
+                        $winfos = $this->GetWordInfos($smarr[$i+2]['w']);
+                        if( isset($winfos[1]) && $winfos[1]=='nr' ) {
+                            $newarr[$j]['w'] .= $smarr[$i+2]['w'];
+                            $i++;
+                        }
                     }
                     if( !isset($this->newWords[ $newarr[$j]['w'] ]) )
                     {
@@ -1228,10 +1302,10 @@ class PhpAnalysis
       
    /**
     * 检测 finallyResult 数组词汇的属性
-    * 需要计算rank或输出词性的时候才需要进行这个操作
+    * 需要完成分词动作后计算rank或输出词性的时候才需要进行这个操作
     * @return void
     */
-    public function CheckWordProperty()
+    private function _check_word_property()
     {
         if( !empty($this->propertyResult) ) return $this->propertyResult;
         $i = 0;
@@ -1244,6 +1318,8 @@ class PhpAnalysis
             $info = $this->GetWordInfos( $w['w'] );
             if( $info != FALSE )
             {
+                //对含有 k 属性的关键字强行降权
+                if( preg_match("/[k]/", $info[1]) ) $info = $this->rankStep * 30;
                 $this->propertyResult[ $w['w'] ] = $info;
             }
             else if( isset($this->newWords[ $w['w'] ]) )
@@ -1252,51 +1328,67 @@ class PhpAnalysis
             }
             else
             {
-                if( $w['t'] == 13 ) 
-                {
-                    $this->propertyResult[ $w['w'] ] = array(10, 'n');
-                }
-                else 
-                {
-                    $uword = $this->_out_string_encoding( $w['w'] );
-                    $luword = strtolower($uword);
-                    //没意义的符号或高频的英语或单个汉字
-                    if( strlen($uword) < 2 || preg_match("/[@#_%\+\-]/", $uword) || 
-                      ( strlen($uword) < 4 && !preg_match("/[a-z]/", $luword) ) || in_array($luword, $this->enBadWords)  )
-                    {
-                        if( in_array($luword, $this->enBadWords) ) {
-                            $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 'e');
-                        } else {
-                            $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 's');
-                        }
-                    }
-                    /*
-                    //英语权重词
-                    elseif( $w['t'] == 2 ) {
-                        
-                    }
-                    */
-                    //常规英文或其它字符
-                    else
-                    {
-                        //$this->propertyResult[ $w['w'] ] = array($this->rankStep*5, 'e');
-                        //echo $this->_out_string_encoding($w['w']), ',';
-                        if( preg_match("/^[A-Z]/", $uword) && !in_array($luword, $this->enBadWords)  )
-                        {
-                            if( preg_match("/[0-9]$/", $uword) ) {
-                                $this->propertyResult[ $w['w'] ] = array($this->rankStep*3, 'n');
-                            } else {
-                                $this->propertyResult[ $w['w'] ] = array($this->rankStep*2, 'n');
-                            }
-                        }
-                        else
-                        {
-                            $this->propertyResult[ $w['w'] ] = array($this->rankStep*5, 'e');
-                        }
-                    }
-                }
-            }
-        }
+                 $uword = $this->_out_string_encoding( $w['w'] );
+                 $luword = strtolower($uword);
+                 //没意义的符号或高频的英语或单个汉字
+                 if( strlen($uword) < 2 || preg_match("/[@#_%\+\-]/", $uword) || 
+                   ( strlen($uword) < 4 && !preg_match("/[a-z]/", $luword) ) )
+                  {
+                      $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 's');
+                  }
+                  //英语权重词
+                  elseif( $w['t'] == 2  )
+                  {
+                      //$lw = $this->_iconv('utf-8', UCS2, $luword);
+                      echo '::', $this->_out_string_encoding($w['w']), '::,';
+                      $einfo = $this->GetEnWordInfos( $luword );
+                      if( $einfo )
+                      {
+                          $this->propertyResult[ $w['w'] ] = $einfo;
+                      }
+                      //没在词典的单词
+                      else  
+                      {
+                          //小于4个字节
+                          if( strlen($uword) < 4 )  //纯数字或数英混合
+                          {
+                               $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 's');
+                          }
+                          //首个字母为大小并且长度超过3的词
+                          elseif( preg_match("/^[A-Z]/", $uword) )
+                          {
+                              //英数组合（通常是某种型号）
+                              if( preg_match("/[0-9]$/", $uword) ) {
+                                  $this->propertyResult[ $w['w'] ] = array($this->rankStep*4, 'n');
+                              } 
+                              //大写开头的加强词汇或人名等
+                              else {
+                                  $this->propertyResult[ $w['w'] ] = array($this->rankStep*3, 'n');
+                              }
+                          }
+                          else
+                          {
+                               //通常是 111cm 之类的词或超过3位的纯数字
+                               if( preg_match("/[^A-Za-z]/", $uword) ) 
+                               {
+                                   $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 's');
+                               }
+                               //词典内没有的普通英文(认为是低频词)
+                               else
+                               {
+                                   $this->propertyResult[ $w['w'] ] = array($this->rankStep*3, 'e');
+                               }
+                           }
+                      }
+                      
+                  }
+                  //常规英文或其它字符
+                  else
+                  {
+                        $this->propertyResult[ $w['w'] ] = array($this->rankStep*10, 's');
+                  }
+              } //end not new word
+        } //end for
     }
     
     /**
@@ -1567,9 +1659,12 @@ class PhpAnalysis
      * 编译词典
      * @parem $sourcefile utf-8编码的文本词典数据文件<参见范例dict/not-build/base_dic_full.txt>
      * 注意, 需要PHP开放足够的内存才能完成操作
+     * @param $source_file
+     * @param $target_file
+     * @param $type = 'unicode' (中文类的词典用unicode编码，英文的用ascii)
      * @return void
      */
-     public function MakeDict( $source_file, $target_file='' )
+     public function MakeDict( $source_file, $target_file='', $type = 'unicode' )
      {
         $target_file = ($target_file=='' ? $this->mainDicFile : $target_file);
         $allk = array();
@@ -1578,8 +1673,7 @@ class PhpAnalysis
         {
             if( $line[0]=='@' ) continue;
             list($w, $r, $a) = explode(',', $line);
-            //$a = trim( $a );
-            $w = $this->_iconv('utf-8', UCS2, $w);
+            if($type=='unicode') $w = $this->_iconv('utf-8', UCS2, $w);
             $k = $this->_get_index( $w );
             if( isset($allk[ $k ]) )
                 $allk[ $k ][ $w ] = array($r, $a);
@@ -1587,7 +1681,9 @@ class PhpAnalysis
                 $allk[ $k ][ $w ] = array($r, $a);
         }
         fclose( $fp );
+        //echo '<xmp>'; print_r($allk); exit();
         $fp = fopen($target_file, 'w') or die("MakeDict create target_file: {$target_file} error!");
+        chmod($target_file, 0666);
         $heade_rarr = array();
         $alldat = '';
         $start_pos = $this->mask_value * 8;
@@ -1604,6 +1700,7 @@ class PhpAnalysis
             $start_pos += $dlen;
         }
         unset( $allk );
+        //echo '<xmp>'; echo $alldat;  exit(); //print_r($heade_rarr); exit();
         for($i=0; $i < $this->mask_value; $i++)
         {
             if( !isset($heade_rarr[$i]) )
@@ -1619,32 +1716,45 @@ class PhpAnalysis
      /**
      * 导出词典的词条
      * @parem $targetfile 保存位置
+     * @param $dicfile 词典文件(如果不指定，则默认会尝试使用LoadDict加载的主词典，因此英文词典必须指定)
+     * @param $type 默认是unicode 英文的用ascii
      * @return void
      */
-     public function ExportDict( $targetfile )
+     public function ExportDict( $targetfile, $dicfile = '', $type = 'unicode' )
      {
-        if( !$this->mainDicHand )
+        if( $dicfile=='' )
         {
-            $this->mainDicHand = fopen($this->mainDicFile, 'r') or die("ExportDict open dicfile:{$this->mainDicFile} error!");
+            if( !$this->mainDicHand )
+            {
+                $this->mainDicHand = fopen($this->mainDicFile, 'r') or die("ExportDict open dicfile:{$this->mainDicFile} error!");
+            }
+            $FPD = $this->mainDicHand;
+        }
+        else
+        {
+            $FPD = fopen($dicfile, 'r') or die("ExportDict open dicfile:{$dicfile} error!");
         }
         $fp = fopen($targetfile, 'w') or die("ExportDict create targetfile: {$targetfile} error!");
+        chmod($targetfile, 0666);
         for($i=0; $i <= $this->mask_value; $i++)
         {
+            //读取数据
             $move_pos = $i * 8;
-            fseek($this->mainDicHand, $move_pos, SEEK_SET);
-            $dat = fread($this->mainDicHand, 8);
+            fseek($FPD, $move_pos, SEEK_SET);
+            $dat = fread($FPD, 8);
             $arr = unpack('I1s/n1l/n1c', $dat);
             if( $arr['l'] == 0 )
             {
                 continue;
             }
-            fseek($this->mainDicHand, $arr['s'], SEEK_SET);
-            $data = @unserialize(fread($this->mainDicHand, $arr['l']));
+            fseek($FPD, $arr['s'], SEEK_SET);
+            $data = @unserialize(fread($FPD, $arr['l']));
             if( !is_array($data) ) continue;
+            //保存导出的数据
             foreach($data as $k => $v)
             {
-                $w = $this->_iconv(UCS2, 'utf-8', $k);
-                fwrite($fp, "{$w},{$v[0]},{$v[1]}\n");
+                if($type=='unicode') $k = $this->_iconv(UCS2, 'utf-8', $k);
+                fwrite($fp, "{$k},{$v[0]},{$v[1]}\n");
             }
         }
         fclose( $fp );

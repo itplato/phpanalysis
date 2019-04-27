@@ -121,7 +121,7 @@ button { font-size:14px; }
 </style>
 </head>
 <body>
-<table width='90%' align='center'>
+<table width='80%' align='center'>
 <tr>
     <td>    
 <h3>PhpAnalysis分词测试 &nbsp; <a href="dictionary-builder.php"><span style="font-size:14px">[词典管理]</span></a></h3>
@@ -129,7 +129,7 @@ button { font-size:14px; }
 
 <form id="form1" name="form1" method="post" action="?ac=done" style="margin:0px;padding:0px;line-height:24px;">
   <b>源文本：</b> <br>
-    <textarea name="source" style="width:98%;height:150px;font-size:14px;"><?php echo (isset($_POST['source']) ? $_POST['source'] : $teststr); ?></textarea>
+    <textarea name="source" style="width:98%;height:180px;font-size:14px;"><?php echo (isset($_POST['source']) ? $_POST['source'] : $teststr); ?></textarea>
     <br/>
     <label><input type='checkbox' name='do_fork' value='1' <?php echo ($do_fork ? "checked='checked'" : ''); ?>/>岐义处理</label>
     <label><input type='checkbox' name='do_unit' value='1' <?php echo ($do_unit ? "checked='checked'" : ''); ?>/>新词识别</label>
@@ -142,7 +142,7 @@ button { font-size:14px; }
     <button type="reset" name="Submit2">重设表单数据</button>
 </form>
 <br>分词结果：<br>
-<textarea name="result" id="result" style="width:98%;height:150px;font-size:14px;color:#555"><?php echo (isset($str_result) ? $str_result : ''); ?></textarea>
+<textarea name="result" id="result" style="width:98%;height:180px;font-size:14px;color:#555"><?php echo (isset($str_result) ? $str_result : ''); ?></textarea>
 <br>权重TF-IDF试验：<br>
 <textarea name="result" id="result" style="width:98%;height:60px;font-size:14px;color:#555"><?php echo (isset($rank_result) ? $rank_result : ''); ?></textarea>
 <br><b>调试信息：</b>

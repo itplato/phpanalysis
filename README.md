@@ -100,12 +100,35 @@ string $source_file   源文本文件
 string $target_file   目标文件(如果不指定，则为当前打开的词典)
 返回值：void
 </pre>
-* ExportDict( $targetfile )
+* ExportDict( $targetfile, $dicfile='' )
 <pre>
 函数说明：导出当前词典全部词条为文本文件
 参数列表：
 string $targetfile  目标文件
+string $dicfile     原字典文件（如果为空，则默认用类加载的主词典）
 返回值：void
+* GetWordInfos( $key )
+<pre>
+函数说明：获取主词典某词条的属性
+参数列表：
+string $key   词条(unicode编码)
+返回值：array(0 => 频率, 1=> 词性)
+</pre>
+* GetEnWordInfos( $key )
+<pre>
+函数说明：获取英文主词典某词条的属性
+参数列表：
+string $key   词语(ascii编码)
+返回值：array(0 => 频率, 1=> 词性)
+</pre>
+* GetWordProperty( $key )
+<pre>
+函数说明：获取某词条的属性
+        这个和GetWordInfos的区别是它必须完成分词动作后才能使用，
+        它不仅能获取词典词条的属性，还能获取当前分词时系统自动周处理的词的属性
+参数列表：
+string $key   词条
+返回值：array(0 => 频率, 1=> 词性)
 </pre>
 三、实例演示
 -------------------
