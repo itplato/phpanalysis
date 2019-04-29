@@ -87,7 +87,7 @@ class PhpAnalysis
     public $isLoadDic = FALSE;
     
     //系统识别或合并的新词
-    public $newWords = array();
+    private $newWords = array();
     
     //英语高频词(暂时不用这个，因为这个在英语词典中本身有体现)
     public $enBadWordFile = 'dict/english-bad-words.txt';
@@ -878,7 +878,12 @@ class PhpAnalysis
             {
                 $tmpstr = '';
                 $lastType = 0;
-                if( $spos > 0 ) $lastType = $this->simpleResult[$spos-1]['t'];
+                if( $spos > 0 ) {
+                    if( isset($this->simpleResult[$spos-1]) )
+                        $lastType = $this->simpleResult[$spos-1]['t'];
+                    else
+                        $lastType = 6;
+                }
                 if($slen < 5)
                 {
                       //echo $this->_iconv(UCS2, 'utf-8', $str).'<br/>';
@@ -896,7 +901,7 @@ class PhpAnalysis
                               $this->simpleResult[$spos - 1]['t'] = 8;
                               if( !isset($this->newWords[$this->simpleResult[$spos - 1]['w']]) )
                               {
-                                     $this->SetWordInfos($ww, array($this->rankStep*10, 'mu'));
+                                     $this->SetWordInfos($ww, array($this->rankStep*20, 'mu'));
                               }
                               unset($this->simpleResult[$spos]);
                               //$this->simpleResult[$spos]['w'] = '';
@@ -944,12 +949,12 @@ class PhpAnalysis
         $tmparr = array();
         $hasw = 0;
         //如果前一个词为 “ ， 并且字符串小于5个字符当成一个词处理。
-        if( $spos > 0 && $slen < 9 && $this->simpleResult[$spos-1]['w']==$quote1 )
+        if( isset($this->simpleResult[$spos-1]) && $spos > 0 && $slen < 9 && $this->simpleResult[$spos-1]['w']==$quote1 )
         {
             $tmparr[] = $str;
             if( !isset($this->newWords[$str]) && !$this->IsWord($str) )
             {
-                $this->SetWordInfos($str, array($this->rankStep*3, 'nq'));
+                $this->SetWordInfos($str, array($this->rankStep*5, 'nq'));
             }
             $this->finallyResult[$spos][] = array('w' => $str, 't' => 1);
             if( !$this->differMax ) {
@@ -1017,7 +1022,7 @@ class PhpAnalysis
         $arlen = count($smarr);
         $i = $j = 0;
         //检测数量词或中英文混合词条(给合上一句子)
-        if( $prePos > -1 && !isset($this->finallyResult[$prePos])  )
+        if( isset($this->simpleResult[$prePos]) && $prePos > -1 && !isset($this->finallyResult[$prePos])  )
         {
             $lastw = $this->simpleResult[$prePos]['w'];
             $lastt = $this->simpleResult[$prePos]['t'];
@@ -1076,11 +1081,13 @@ class PhpAnalysis
             else if( isset( $this->addonDic['n'][ $smarr[$i]['w'] ] ) )
             {
                 $is_rs = FALSE;
+                $cncw = $this->_out_string_encoding($cw);
                 //词语是副词或介词或频率很高的词不作为人名
                 if( strlen($nw)==4 )
                 {
                     $winfos = $this->GetWordInfos($nw);
-                    if(isset($winfos[1]) && in_array( $winfos[1], array('r', 'c', 'd', 'p', 't') ) )
+                    if( isset($winfos[1]) && (in_array( $winfos[1], array('r', 'c', 'd', 'p', 't') ) 
+                      || ($cncw == '曾' && preg_match("/v/",$winfos[1])) || $cncw == '于' ) )
                     {
                          $is_rs = TRUE;
                     }
@@ -1135,7 +1142,7 @@ class PhpAnalysis
                         $i++;
                     }
                     //如果后面的词是2-3个中文，要是词性还是人名(nr)，通常这是一个老外的名字
-                    else if( strlen($smarr[$i+2]['w']) > 2 && strlen($smarr[$i+2]['w']) < 7   )
+                    else if( isset($smarr[$i+2]) && strlen($smarr[$i+2]['w']) > 2 && strlen($smarr[$i+2]['w']) < 7   )
                     {
                         $winfos = $this->GetWordInfos($smarr[$i+2]['w']);
                         if( isset($winfos[1]) && $winfos[1]=='nr' ) {
@@ -1340,10 +1347,12 @@ class PhpAnalysis
                   elseif( $w['t'] == 2  )
                   {
                       //$lw = $this->_iconv('utf-8', UCS2, $luword);
-                      echo '::', $this->_out_string_encoding($w['w']), '::,';
+                      //echo '::', $this->_out_string_encoding($w['w']), '::,';
                       $einfo = $this->GetEnWordInfos( $luword );
                       if( $einfo )
                       {
+                          //考虑系统分词并不是以中文为主，降低常规英文词条的权重
+                          if( !preg_match("/^[A-Z]/", $uword) ) $einfo[0] = ceil($einfo[0] * 2);
                           $this->propertyResult[ $w['w'] ] = $einfo;
                       }
                       //没在词典的单词
@@ -1455,7 +1464,13 @@ class PhpAnalysis
      {
         if( $is_array===TRUE || $is_array==1 )
         {
-            return $this->newWords;
+            $outWords = array();
+            foreach( $this->newWords as $word => $wordinfos )
+            {
+                $word =  $this->_out_string_encoding($word);
+                $outWords[ $word ] = $wordinfos[0];
+            }
+            return $outWords;
         }
         else if( $is_array==-1 )
         {
@@ -1590,7 +1605,7 @@ class PhpAnalysis
                     if( !is_array($rearr_m[$w])  )
                     {
                         //if( $v['t'] == 2 && strlen() > 4 )
-                        $rearr_m[$w] = array(10000, 'x');
+                        $rearr_m[$w] = array($this->rankStep * 20, 'x');
                     }
                 }
             }
@@ -1673,6 +1688,10 @@ class PhpAnalysis
         {
             if( $line[0]=='@' ) continue;
             list($w, $r, $a) = explode(',', $line);
+            if( !is_numeric($r) ) {
+                echo '"', $w, "\" error count not numeric<br>\n";
+                exit();
+            }
             if($type=='unicode') $w = $this->_iconv('utf-8', UCS2, $w);
             $k = $this->_get_index( $w );
             if( isset($allk[ $k ]) )
