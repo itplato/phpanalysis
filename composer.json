@@ -1,0 +1,21 @@
+{
+    "name": "itplato/phpanalysis",
+    "type": "library",
+    "description": "php chinese analysis, It's component-free word segmentation in language-php",
+    "keywords": ["analysis", "word segmentation", "segmentation"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Itplato",
+            "homepage": "http://webbo.com/dbzllx"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tutu\\" : "src/"
+        }
+    }
+}
