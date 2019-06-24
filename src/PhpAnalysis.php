@@ -239,11 +239,11 @@ class PhpAnalysis
     private function _get_out_encoding( $str )
     {
         if ( $this->_out_encoding_type == 1 ) {
-            $str = iconv(_PA_UCS2_, 'utf-8', $str);
+            $str = $this->ConvertEncoding(_PA_UCS2_, 'utf-8', $str);
         } else if ( $this->_out_encoding_type == 2 ) {
-            $str = iconv('utf-8', 'gb18030', iconv(_PA_UCS2_, 'utf-8', $str));
+            $str = $this->ConvertEncoding('utf-8', 'gb18030', $this->ConvertEncoding(_PA_UCS2_, 'utf-8', $str));
         } else {
-            $str = iconv('utf-8', 'big5', iconv(_PA_UCS2_, 'utf-8', $str));
+            $str = $this->ConvertEncoding('utf-8', 'big5', $this->ConvertEncoding(_PA_UCS2_, 'utf-8', $str));
         }
         return $str;
     }
@@ -717,15 +717,19 @@ class PhpAnalysis
             foreach($tmp as $w => $c)
             {
                 $cn = $this->_get_out_encoding( $w );
-                if( strlen($w)==2 )
+                $dc = $this->_check_rank($w, 0);
+                if( $dc==0 )
                 {
-                    if( isset($hot_250_chars[$w]) ) {
-                        $dc = $this->rank_step * 20;
+                    if( strlen($w)==2 )
+                    {
+                        if( isset($hot_250_chars[$w]) ) {
+                            $dc = $this->rank_step * 20;
+                        } else {
+                            $dc = isset($hot_750_chars[$w])  ? $this->rank_step * 10 : $this->rank_step * 4;
+                        }
                     } else {
-                        $dc = isset($hot_750_chars[$w])  ? $this->rank_step * 10 : $this->rank_step * 4;
+                        $dc = (isset($this->_property_result[$w][0]) ? $this->_property_result[$w][0] : $this->rank_step * 20);
                     }
-                } else {
-                    $dc = (isset($this->_property_result[$w][0]) ? $this->_property_result[$w][0] : $this->rank_step * 20);
                 }
                 $ok_result[ $cn ] = array(sprintf("%0.3f", $c * 100 / $dc), $c, $dc);
             }
@@ -737,6 +741,22 @@ class PhpAnalysis
             }
         }
         return $ok_result;
+    }
+    
+   /**
+    * 检测最终词条，人工干预降权重
+    * @param $w  没转码前的词条
+    * @param $dc 原权重 
+    * @return $new_dc
+    */
+    private function _check_rank($w, $dc)
+    {
+        $uw = $this->ConvertEncoding(_PA_UCS2_, 'utf-8', $w);
+        //强制降低权重的情况
+        if( preg_match("/某$/", $uw) ) {
+             $dc = $this->rank_step * 20;
+        }
+        return $dc;
     }
     
     /**
