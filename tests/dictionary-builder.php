@@ -16,7 +16,7 @@ $dictype = empty($_POST['dictype']) ? '' : $_POST['dictype'];
 
 if( $ac == 'make' )
 {
-    $targetfile = ($dictype==1 ? $normalDic  : ( $dictype==2 ? $seoDic : $enDic) );
+    $targetfile = $dictype==1 ? $normalDic  : $enDic;
     $sourcefile = $_POST['sourcefile'];
     
     $pa = PhpAnalysis::Instance()->AssistBuildDict( $sourcefile, $targetfile );
@@ -26,7 +26,7 @@ if( $ac == 'make' )
 }
 else if( $ac=='export' )
 {
-    $dicfile = ($dictype==1 ? $normalDic : ( $dictype==2 ? $seoDic : $enDic));
+    $dicfile = ($dictype==1 ? $normalDic : $enDic);
     $sourcefile = $_POST['sourcefile'];
     
     PhpAnalysis::Instance()->AssistExportDict($sourcefile, $dicfile);

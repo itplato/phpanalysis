@@ -28,16 +28,16 @@ $str = (isset($_POST['source']) ? $_POST['source'] : '');
 
 $loadtime = $endtime1  = $endtime2 = $slen = 0;
 
-$do_unit_single = $do_unit_special = true;
+$do_unit_single = $do_unit_special = $do_fork = true;
 
-$do_fork = $max_split = $do_prop = false;
+$max_split = $do_prop = false;
 
 //限制字数
 $str = mb_substr($str, 0, 1024 * 3, 'UTF-8');
 
 if($str != '')
 {
-    //热门词消岐
+    //二元消岐
     $do_fork = empty($_POST['do_fork']) ? false : true;
     
     //专用词合并
@@ -63,6 +63,9 @@ if($str != '')
     $pa->SetOptions( $do_unit_special, $do_unit_single, $max_split, $do_fork );
     $pa->SetSource( $str )->Delimiter(' ')->Exec();
     print_memory('执行分词', $memory_info);
+    
+    //$rs = $pa->AssistGetSimple();
+    //echo "<div style='width:1000px'>", $rs, '</div>';
 
     $rank_result = $pa->GetTags(20, true);
         
@@ -76,6 +79,8 @@ if($str != '')
     print_memory('输出分词结果', $memory_info);
     
     $pa_foundWordStr = $pa->GetNewWords();
+    
+    $pa_ambiguity_words = $pa->AssistGetAmbiguitys();
     
     $t2 = microtime(true);
     $endtime = sprintf('%0.4f', $t2 - $t1);
@@ -99,7 +104,7 @@ ARM内部人士透露，11月5日，ARM高级副总裁lanDrew参观了联想研�
 <html>
 <head>
 <meta charset="utf-8">
-<title>PhpAnalysis分词测试</title>
+<title> testing... </title>
 <style>
 button { font-size:14px; }
 </style>
@@ -118,7 +123,7 @@ button { font-size:14px; }
     <label><input type='checkbox' name='do_unit_special' value='1' <?php echo ($do_unit_special ? "checked='checked'" : ''); ?>/>专用词识别</label>
     <label><input type='checkbox' name='do_unit_single' value='1' <?php echo ($do_unit_single ? "checked='checked'" : ''); ?>/>单字合并</label>
     <label><input type='checkbox' name='max_split' value='1' <?php echo ($max_split ? "checked='checked'" : ''); ?>/>最大切分</label>
-    <label><input type='checkbox' name='do_fork' value='1' <?php echo ($do_fork ? "checked='checked'" : ''); ?>/>热门词消岐</label>
+    <label><input type='checkbox' name='do_fork' value='1' <?php echo ($do_fork ? "checked='checked'" : ''); ?>/>二元消岐</label>
     <label><input type='checkbox' name='do_prop' value='1' <?php echo ($do_prop ? "checked='checked'" : ''); ?>/>词性标注</label>
     <br/>
     <button type="submit" name="Submit">提交进行分词</button>
@@ -132,6 +137,8 @@ button { font-size:14px; }
 <br><b>调试信息：</b>
 <hr>
 <font color='blue'>字串长度：</font><?php echo $slen; ?>K <font color='blue'>自动识别词：</font><?php echo (isset($pa_foundWordStr)) ? $pa_foundWordStr : ''; ?><br>
+<hr>
+<font color='blue'>岐义处理：</font><?php echo (isset($pa_ambiguity_words)) ? $pa_ambiguity_words : ''; ?>
 <hr>
 <font color='blue'>内存占用及执行时间：</font>(表示完成某个动作后正在占用的内存)<hr>
 <?php echo $memory_info; ?>
