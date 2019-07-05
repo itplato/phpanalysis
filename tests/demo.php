@@ -80,7 +80,7 @@ if($str != '')
     
     $pa_foundWordStr = $pa->GetNewWords();
     
-    $pa_ambiguity_words = $pa->AssistGetAmbiguitys();
+    $pa_ambiguity_words = $pa->Delimiter('; ')->AssistGetAmbiguitys();
     
     $t2 = microtime(true);
     $endtime = sprintf('%0.4f', $t2 - $t1);
