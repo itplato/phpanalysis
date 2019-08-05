@@ -105,10 +105,10 @@ ARM内部人士透露，11月5日，ARM高级副总裁lanDrew参观了联想研�
 <head>
 <meta charset="utf-8">
 <title> Analysis testing... </title>
-<link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.1.0/css/bootstrap.min.css">
-<script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdn.staticfile.org/twitter-bootstrap/4.1.0/js/bootstrap.min.js"></script>
-<script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+<link rel="stylesheet" href="http://www.it.com/static/bootstrap.min.css">
+<script src="http://www.it.com/static/jquery.min.3.2.js"></script>
+<script src="http://www.it.com/static/bootstrap.min.4.1.js"></script>
+<script src="http://www.it.com/static/vue.min.2.2.js"></script>
 <style>
 #main { width:1200px;margin:auto }
 .row { padding: 6px; }
@@ -135,19 +135,19 @@ dl { width:100%; }
 /*  词性颜色  */
 .wd { margin-bottom:6px; margin-right:6px; background: #ddd; font-size:0.9em; padding:3px; float:left }
 .wd-en  { background: #5cfcae; }
-.wd-es  { background: #a9fff0; }
 .wd-s  { color:#aaa; }
 .wd-xs  { color:#999; }
+.wd-e  { background: #5cfcae; }
 .wd-es  { background: #a9fff0; }
 .wd-a  { background: #509ee3; }
 .wd-d  { background: #d1d1d1; }
-.wd-e  { background: #d1d1d1; }
 .wd-c  { background: #d1d1d1; }
 .wd-b  { background: #64c2ff; }
 .wd-n  { background: #9aff02; }
 .wd-nN  { background: #c2ff68; }
 .wd-nS, .wd-na  { background: #deffac ; }
 .wd-nT  { background: #efffd7; }
+.wd-nM  { background: #efef67; }
 .wd-nA   { background: #efffdt; }
 .wd-nC  { background: #5cadad; }
 .wd-nP  { background: #81c0c0; }
@@ -156,6 +156,7 @@ dl { width:100%; }
 .wd-nj  { background: #ffe66f; }
 .wd-nr  { background: #bceefc; }
 .wd-v  { background: #ff8f59; }
+.wd-vu  { background: #fde29b; }
 .wd-vn  { background: #eefda3; }
 .wd-m  { background: #a3d1d1; }
 .wd-mQ, { background: #c7c7e2; }

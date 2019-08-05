@@ -183,7 +183,7 @@ class PhpAnalysis
     
     //词性分类
     public $word_types = array(
-        'a' => '形容词','d' => '副词','e' => '叹词','c' => '连词','b' => '类别',
+        'a' => '形容词','d' => '副词','c' => '连词','b' => '类别',
         'n' => '名词','nN' => '人名.名人','nS' => '地名 ','nT' => '团体.赛事',
         'nA' => '协议.法规.事件','nC' => '知名企业','nP' => '知名品牌','nz' => '专业名词 ',
         'nB' => '知名作品','nj' => '简称','nr' => '代名词','v' => '动词','vn' => '动名词',
@@ -192,8 +192,8 @@ class PhpAnalysis
         'l' => '谚惯语','j' => '简称','f' => '方位词','x' => '未知.新词',
         'o' => '声音词','F' => '前导词','E' => '后缀词','X' => '非语素词', 'sb' => '符号',
         'mq' => '数量词','na' => '地名后缀','nE' => '次要后缀','nZ' => '专用后缀',
-        'mu' => '数量合并', 'es' => '英文加重', 's' => '虚.停止词', 'xs' => '未知.中断',
-        'NF' => '复姓', 'N' => '单姓'
+        'mu' => '数量合并','e' => '英文', 'es' => '英文加重', 's' => '虚.停止词', 'xs' => '未知.停止',
+        'NF' => '复姓', 'N' => '单姓', 'vu' => '助动词', 'nM' => '媒体'
      );
     
     /**
@@ -302,6 +302,8 @@ class PhpAnalysis
         //检查输入编码
         if( $source != '' )
         {
+            //多个空白字符合并为一个
+            $source = preg_replace("/[".chr(1)."-".chr(0x20)."]{1,}/", ' ', $source);
             if( preg_match("/^utf/", $source_encoding) ) {
                 $this->source_string = $this->ConvertEncoding('utf-8', _PA_UCS2_, $source);
             }
@@ -450,7 +452,8 @@ class PhpAnalysis
                 $ws = explode(',', rtrim($line));
                 $c = $this->ConvertEncoding('utf-8', _PA_UCS2_, $ws[0]);
                 array_shift($ws);
-                $this->_chars[$c] = $ws;
+                //print_r($ws); exit();
+                $this->_chars[$c] = [$ws[0],$ws[1],$ws[6]];
             }
             fclose( $fp );
             
@@ -532,15 +535,15 @@ class PhpAnalysis
                     $last_char_type = 3;
                     if( $cn < 0x21 || $cn == 0x7F ) //没意义的ascii符号
                     {
-                        continue;
+                        $this->_simple_result[$s]['t'] = 249;
                     }
                     else
                     {
-                        $this->_simple_result[$s]['w'] = chr(0).chr($cn);
                         $this->_simple_result[$s]['t'] = 3;
-                        $this->_simple_result[$s]['d'] = 0;
-                        $s++;
                     }
+                    $this->_simple_result[$s]['w'] = chr(0).chr($cn);
+                    $this->_simple_result[$s]['d'] = 0;
+                    $s++;
                 }
             }
             //普通字符
@@ -668,8 +671,9 @@ class PhpAnalysis
         $okwords = array();
         foreach( $this->_finally_result as $k => $words )
         {
-            if( $words['t'] == 250 ) continue;
+            if( $words['t'] == 249 || $words['t'] == 250 ) continue;
             $_w = $this->_get_out_encoding( $words['w'] );
+            //unset( $words['w'] );echo '['.$_w.']--'.join(',', $words)." -- ";
             if( $result_type==1 ) {
                 $okwords[] = $_w;
             } else {
@@ -704,7 +708,7 @@ class PhpAnalysis
         }
         foreach( $this->_finally_result as $k => $words )
         {
-            if( $words['t'] == 250 ) continue;
+            if( $words['t'] == 249 || $words['t'] == 250 ) continue;
             $_w = $this->_get_out_encoding( $words['w'] );
             $p = $this->_property_result[$words['w']][1];
             $p = str_replace('k', '', $p);
@@ -790,7 +794,7 @@ class PhpAnalysis
         $n = 1;
         foreach($this->_finally_result as $v)
         {
-            if( $v['t'] == 250 ) continue;
+            if( $v['t'] == 249 || $v['t'] == 250 ) continue;
             if( $v['l'] < 2 )
             {
                 if( $v['t'] != 1 || isset($this->_addon_dic['s'][$v['w']]) ) {
@@ -831,7 +835,7 @@ class PhpAnalysis
                 if( $dc==0 )
                 {
                     //单个汉字的权重
-                    if( strlen($w)==2 )
+                    if( strlen($w)==2 && empty($this->_property_result[$w][0]) )
                     {
                         if( !isset($this->_chars[$w]) ) {
                             $dc = $this->rank_step;
@@ -947,12 +951,12 @@ class PhpAnalysis
      */
     public function AssistGetSimple( $string=true )
     {
-        $simple_result = '';
+        $simple_result = $string ? '' : [];
         foreach( $this->_simple_result as $k => $v )
         {
             if( $string ) {
                 $w = $this->_get_out_encoding( $v['w'] );
-                $simple_result .= "{$w}/{$v['t']}  ";
+                $simple_result .= "{$w}/{$v['t']} -- ";
             } else {
                 $simple_result[$k] = array('w' => $this->_get_out_encoding($v['w']), $v['t']);
             }
@@ -1034,17 +1038,25 @@ class PhpAnalysis
         for( $index = 0; $index < $total; $index++)
         {
             $ws = $this->_simple_result[$index];
+            $ws['l'] = strlen($index) / 2;
             //非数字类型直接处理
             if( $ws['t'] != 4 )
             {
                 //符号或英文
-                if( in_array($ws['t'], [2,3,5]) )
+                if( in_array($ws['t'], [2,3,5,249]) )
                 {
+                    $ws['m'] = 'ss';
                     $this->_deep_result[ $index ][] = $ws;
                 }
                 //书名
                 else if( $ws['t']==8 )
                 {
+                    $info = $this->_get_words($ws['w']);
+                    $ws['m'] = 'nB';
+                    $ws['m'] = !isset($info[1]) ? 'nB' : $info[1];
+                    $rank = !isset($info[0]) ? $this->rank_step : $info[0];
+                    $this->_set_new_word($ws['w'], array($rank, $ws['m']));
+                    
                     $this->_deep_result[ $index ][] = $ws;
                     if( $this->max_split ) {
                         $this->_deep_analysis_cn($ws['w'], $index, 7);
@@ -1056,6 +1068,11 @@ class PhpAnalysis
                     if( strlen($ws['w']) < 5 && !isset($this->_addon_dic['s'][substr($ws['w'], -2, 2)]) )
                     {
                         $ws['t'] = 12;
+                        $info = $this->_get_words($ws['w']);
+                        $ws['m'] = !isset($info[1]) ? 'x' : $info[1];
+                        $rank = !isset($info[0]) ? $this->rank_step * 5 : $info[0];
+                        $this->_set_new_word($ws['w'], array($rank, $ws['m']));
+                        
                         $this->_deep_result[ $index ][] = $ws;
                         
                     } else {
@@ -1072,10 +1089,12 @@ class PhpAnalysis
                 {
                     $this->_deep_result[ $index ][] = $ws;
                 }
-                else if( isset( $this->_addon_dic['ms'][$this->_simple_result[$index+1]['w']] ) )
+                else if( isset($this->_addon_dic['ms'][$this->_simple_result[$index+1]['w']]) 
+                      || isset($this->_addon_dic['d'][$this->_simple_result[$index+1]['w']]) )
                 {
                     $ws['w'] = $ws['w'].$this->_simple_result[$index+1]['w'];
                     $ws['t'] = 11;
+                    $ws['b'] = 'mu';
                     $this->_deep_result[ $index ][] = $ws;
                     $this->_set_new_word($ws['w'], array($this->rank_step * 20, $this->_check_date($ws['w'], 'mu')));
                     $index++;
@@ -1088,7 +1107,7 @@ class PhpAnalysis
         }
         //返回默认结果或当前对象
         if( $return ) {
-            return $this->AssistGetSimple();
+            return $this->AssistGetDeep();
         } else {
             return $this;
         }
@@ -1142,14 +1161,49 @@ class PhpAnalysis
         $wcount = count($tmparr);
         if( $wcount==0 )
         {
+            echo '['.$this->_out($str).']::';
             $this->_deep_result[$index][] = array('w' => $str, 't' => 12, 'd' => 1);
         }
         else
         {
             $sparr = array_reverse($tmparr);
-            foreach( $sparr as $w ) {
-                $this->_deep_result[$index][] = array('w' => $w, 't' => 1, 'd' => 1);
+            foreach( $sparr as $w )
+            {
+                $l = strlen( $w ) / 2;
+                $m = $this->_get_words($w)[1];
+                $this->_deep_result[$index][] = array('w' => $w, 't' => 1, 'd' => 1, 'l' => $l, 'm' => $m);
             }
+        }
+    }
+    
+    /**
+    * 优化分词结果
+    * _finally_result
+    */
+    public function Optimize_new( $return = false )
+    {
+        $deep_result = array();
+        
+        //输出纯粹切词的处理结果
+        //------------------------------------------
+        echo '<div style="width:1200px;margin:auto;margin-top:10px;padding:8px;border:1px solid #eaeaea;border-radius:10px;">';
+        foreach($this->_deep_result as $id => $ss)
+        {
+            foreach( $ss as $w => $i ) {
+                $w = $this->_out($i['w']);
+                unset( $i['w'] );
+                $prop = '';
+                foreach($i as $k => $l) $prop .= "{$k}/{$l},";
+                echo '<span title="'.$prop.'">'.$w.'</span> ';
+            }
+        }
+        echo "</div>";
+        
+        //返回默认结果或当前对象
+        if( $return ) {
+            return $this->GetResult();
+        } else {
+            return $this;
         }
     }
     
@@ -1281,6 +1335,12 @@ class PhpAnalysis
                 {
                     $this->_optimize_merge_single($i, $w);
                 }
+                //尝试合并时间
+                else if( isset($this->_new_words[$w['w']][1])  && $this->_new_words[$w['w']][1] == 't' )
+                {
+                    $this->_optimize_test_date($i, $this->_finally_result);
+                }
+                
             }
         }
         
@@ -1303,12 +1363,33 @@ class PhpAnalysis
         $next_wh = substr($next_w['w'], 0, 2);
         $new_word = $cur_w['w'].$next_wh;
         $info = $this->_get_words( $new_word, true );
-        if( $cur_w['l']==1 && ( isset($this->_addon_dic['a'][$cur_w['w']])
-            || isset($this->_addon_dic['z'][$cur_w['w']]) || isset($this->_addon_dic['e'][$cur_w['w']]) ) )
+        //echo $this->_out( $new_word ).' -- ';print_r($info); echo '<br>';
+        if( $cur_w['l']==1 && ( isset($this->_addon_dic['z'][$cur_w['w']]) || isset($this->_addon_dic['e'][$cur_w['w']]) ) )
         {
             return false;
         }
-        if( ( isset($info[1]) && !preg_match('/[m]/', $cur_w['m']) ) || ($cur_w['l']==1 && isset($this->_addon_dic['em'][$next_wh])) )
+        else if( $cur_w['l']==1 && isset($this->_addon_dic['en'][$cur_w['w']]) )
+        {
+            $cur_info = $this->_get_words( $next_w['w'] );
+            if( $cur_info[1] == 'u' || $cur_info[1] == 'a' )
+            {
+                $new_word = $cur_w['w'].$this->_finally_result[$i+1]['w'];
+                $type = $this->_finally_result[$i+1]['m'];
+                $this->_finally_result[$i]['w'] = $new_word;
+                $this->_finally_result[$i]['d'] = 2;
+                $this->_finally_result[$i]['t'] = 1;
+                $this->_finally_result[$i]['l'] = strlen($new_word) / 2;
+                $this->_finally_result[$i]['m'] = $type;
+                unset($this->_finally_result[$i+1]);
+                $i++;
+                if( !isset($this->_new_words[$new_word]) ) {
+                     $this->_set_new_word($new_word, array($this->rank_step * 10, $type));
+                }
+                return true;
+            }
+        }
+        if( ( isset($info[1]) && isset($cur_w['m']) && !preg_match('/[m]/', $cur_w['m']) ) 
+            || ($cur_w['l']==1 && isset($this->_addon_dic['em'][$next_wh])) )
         {
             $next_e = substr($next_w['w'], 2, 2);
             $is_save = false;
@@ -1318,13 +1399,18 @@ class PhpAnalysis
             if( isset($this->_addon_dic['sw'][$next_w['w']]) ) {
                 $is_save = false;
             }
+            else if( is_array($info) && $info[1]=='nS' ) {
+                $is_save = true;
+                $this->_ambiguity_words[$_w_debug] = $_w_debug.' :area)';
+            }
             //长词优先(如果后面的词太过热门，也不处理)
             else if( $cur_w['l']==2 && $cur_info[0] < 600 && !isset($this->_addon_dic['se'][$next_wh]) )
             {
                 $is_save = true;
                 $this->_ambiguity_words[$_w_debug] = $_w_debug.' :max)';
             }
-            else if( !isset($this->_addon_dic['s'][$next_wh]) && !isset($this->_addon_dic['m'][$next_wh]) && !isset($this->_addon_dic['af'][$next_wh]) 
+            //!isset($this->_addon_dic['s'][$next_wh]) && 
+            else if( !isset($this->_addon_dic['m'][$next_wh]) && !isset($this->_addon_dic['af'][$next_wh]) 
                  && !isset($this->_addon_dic['se'][$cur_w['w']]) && !isset($this->_addon_dic['sl'][$cur_w['w']]))
             {
                 //非中止词优先
@@ -1332,23 +1418,6 @@ class PhpAnalysis
                 {
                     $is_save = true;
                     $this->_ambiguity_words[$_w_debug] = $_w_debug.' :stop)';
-                }
-                //中间组合词
-                elseif( $cur_w['l']==1 && isset($this->_addon_dic['em'][$next_wh]) )
-                {
-                    $new_word = $cur_w['w'].$this->_finally_result[$i+1]['w'];
-                    $this->_finally_result[$i]['w'] = $new_word;
-                    $this->_finally_result[$i]['d'] = 2;
-                    $this->_finally_result[$i]['l'] = strlen($cur_w['w'].$this->_finally_result[$i+1]['w']) / 2;
-                    $this->_finally_result[$i]['m'] = $this->_finally_result[$i+1]['m'];
-                    unset($this->_finally_result[$i+1]);
-                    $i++;
-                    if( !isset($this->_new_words[$new_word]) ) {
-                        $rank = isset($cur_info[0]) ? $cur_info[0] : $this->rank_step * 5;
-                        $type = isset($cur_info[1]) ? $cur_info[1] : 'x';
-                        $this->_set_new_word($new_word, array($rank, $type));
-                    }
-                    return true;
                 }
                 //热门优先
                 else
@@ -1374,6 +1443,7 @@ class PhpAnalysis
                             $new_word = $cur_w['w'].$this->_finally_result[$i+1]['w'];
                             $this->_finally_result[$i]['w'] = $new_word;
                             $this->_finally_result[$i]['d'] = 2;
+                            $this->_finally_result[$i]['t'] = 1;
                             $this->_finally_result[$i]['l'] = strlen($new_word) / 2;
                             $this->_finally_result[$i]['m'] = $type;
                             unset($this->_finally_result[$i+1]);
@@ -1393,12 +1463,17 @@ class PhpAnalysis
             }
             if( $is_save )
             {
+                $info = $this->_get_words( $new_word );
                 $this->_finally_result[$i]['w'] = $new_word;
+                $this->_finally_result[$i]['t'] = 1;
                 $this->_finally_result[$i]['d'] = 2;
                 $this->_finally_result[$i]['l'] = 2;
+                $this->_finally_result[$i]['m'] = $info[1];
                 $this->_finally_result[$i+1]['w'] = $next_e;
+                $this->_finally_result[$i+1]['t'] = 1;
                 $this->_finally_result[$i+1]['d'] = 2;
                 $this->_finally_result[$i+1]['l'] = 1;
+                $this->_finally_result[$i+1]['m'] = 's';
                 $i++;
             }
         }
@@ -1503,6 +1578,48 @@ class PhpAnalysis
     }
     
     /**
+     * 尝试合并连续时间词
+     * @parem $i
+     * @param $res
+     * @return boolean
+     */
+    protected function _optimize_test_date(&$i, &$res)
+    {
+        $cur_pos = $i;
+        $date_w = $res[$i]['w'];
+        while( true )
+        {
+            if( $res[$i+1]['t'] == 250 )
+            {
+                $i++;
+                if( isset($this->_new_words[$res[$i+1]['w']]) && $this->_new_words[$res[$i+1]['w']][1] == 't' )
+                {
+                    $date_w .= $res[$i+1]['w'];
+                    if( !$this->max_split ) {
+                        unset($res[$i+1]);
+                        unset($res[$i]);
+                    }
+                    $i++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+        if( $i > $cur_pos )
+        {
+            $this->_set_new_word($date_w, array($this->rank_step * 10, 't'));
+            $this->_finally_result[$cur_pos] = array('w' => $date_w, 't' => 11, 'd' => 2, 'l' => strlen($date_w)/2, 'm' => 't'  );
+            return true;
+        }
+    }
+    
+    /**
      * 尝试检测后缀名(通常是地名)
      * @parem $i
      * @param $res
@@ -1512,11 +1629,12 @@ class PhpAnalysis
     {
         $cur_pos = $i;
         $cur_w  = $res[$i];
+        $last_w = substr($cur_w['w'], -2 , 2);
         if( $res[$i]['m'] == 'nN' || preg_match("/[ordcmtb]/", $res[$i]['m']) ) {
             return false;
         }
         if( !isset($this->_addon_dic['s'][ $cur_w['w'] ]) 
-           && ($cur_w['l'] > 1 && !isset($this->_addon_dic['a'][ substr($cur_w['w'], -2 , 2) ])) )
+           && !isset($this->_addon_dic['s'][$last_w]) && ($cur_w['l'] > 1 && !isset($this->_addon_dic['a'][$last_w]) ) )
         {
             $t = 17;
             $pre_word = $cur_w['w'];
@@ -1698,6 +1816,18 @@ class PhpAnalysis
             $this->_finally_result[] = array('w' => $numstr, 't' => 31, 'd' => 1, 'l' => strlen($numstr)/2 );
         }
         //echo $this->_out($res[$i]['w']).' -- '.$this->_out($res[$i+1]['w']).'<br>';
+        //组合后一个
+        if( $res[$i+1]['t']==1 && $res[$i+1]['l'] > 1 && preg_match("/(mQ|q|mu)/", $res[$i+1]['m']) )
+        {
+            $numstr .= $res[$i+1]['w'];
+            $type = $this->_check_date($numstr, 'mu');
+            $res[$i]['m'] = $type;
+            $this->_finally_result[] = array('w' => $numstr, 't' => 13, 'd' => 1, 'l' => strlen($numstr)/2, 'm' => $type );
+            $this->_set_new_word($numstr, array($this->rank_step * 10, $type));
+            $i++;
+            return true;
+        }
+        
         //测试后五个进行组合
         for($j=1; $j < 8; $j++)
         {
@@ -1727,7 +1857,7 @@ class PhpAnalysis
         $i += $j - 1;
         //检测后面是否有单位词
         $is_date = false;
-        if( isset($res[$i+1]) && isset($this->_addon_dic['ms'][$res[$i+1]['w']]) )
+        if( isset($res[$i+1]) && (isset($this->_addon_dic['ms'][$res[$i+1]['w']]) || isset($this->_addon_dic['d'][$res[$i+1]['w']])) )
         {
              $numstr .= $res[$i+1]['w'];
              if( $this->max_split )  {
@@ -1857,7 +1987,7 @@ class PhpAnalysis
         $n = 1;
         foreach($this->_finally_result as  $k => $w)
         {
-            if( $w['t'] == 250 ) continue;
+            if( $w['t'] == 249 || $w['t'] == 250 ) continue;
             //防止逻辑中没有包含len的情况 
             if( !isset($w['l']) )  {
                 $this->_finally_result[$k]['l'] = strlen($w['w']) / 2;
@@ -1866,7 +1996,11 @@ class PhpAnalysis
             if( $info != FALSE )
             {
                 //对含有特定属性的关键字强行降权
-                if( preg_match("/[kadmtqrco]/", $info[1]) && $info[1] != 'nN' ) {
+                if( (isset($info[3]) && preg_match("/L/", $info[3])) || preg_match("/(nM|i|l)/", $info[1]) )
+                {
+                    $info[0] = $this->rank_step * 30;
+                }
+                else if( preg_match("/[kadmtqrdcposejfFE]/", $info[1]) && $info[1] != 'nN' ) {
                     $info[0] = $this->rank_step * 50;
                 }
                 $this->_property_result[ $w['w'] ] = $info;
@@ -1885,8 +2019,13 @@ class PhpAnalysis
                   {
                       if( $w['t']==1 && isset($this->_chars[$w['w']]) )
                       {
-                          //print_r($this->_chars[$w['w']]); exit();
-                          $this->_property_result[$w['w']] = array($this->_chars[$w['w']][0], $this->_chars[$w['w']][1]);
+                          if( preg_match("/n/", $this->_chars[$w['w']][1].$this->_chars[$w['w']][2]) ) {
+                              $rank = $this->_chars[$w['w']][2]=='' ? $this->_chars[$w['w']][0] : $this->_chars[$w['w']][0] * 5;
+                          }
+                          else {
+                              $rank = $this->_chars[$w['w']][0] * 20;
+                          }
+                          $this->_property_result[$w['w']] = array($rank, $this->_chars[$w['w']][1]);
                       }
                       else
                       {
@@ -1898,7 +2037,7 @@ class PhpAnalysis
                           } else if( preg_match("/[0-9]/", $luword) ) {
                             $type = 'm';
                           } else {
-                            $type = 's';
+                            $type = 'x';
                           }
                           $this->_property_result[ $w['w'] ] = array($this->rank_step*10, $type);
                       }
@@ -1919,7 +2058,7 @@ class PhpAnalysis
                           //小于4个字节
                           if( strlen($uword) < 4 )  //纯数字或数英混合
                           {
-                               $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 's');
+                               $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 'm');
                           }
                           //首个字母为大小并且长度超过3的词
                           elseif( preg_match("/^[A-Z]/", $uword) )
@@ -1938,7 +2077,7 @@ class PhpAnalysis
                                //通常是 111cm 之类的词或超过3位的纯数字
                                if( preg_match("/[^A-Za-z]/", $uword) ) 
                                {
-                                   $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 's');
+                                   $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 'm');
                                }
                                //词典内没有的普通英文(认为是低频词)
                                else
@@ -1952,13 +2091,13 @@ class PhpAnalysis
                   //书名
                   elseif( $w['t'] == 8 )
                   {
-                      $r = $k < 10 ? 1 : 3;
-                      $this->_property_result[ $w['w'] ] = array($this->rank_step * $r, 'nb');
+                      $r = ($k / $all_count < 0.2) ? 1 : 3;
+                      $this->_property_result[ $w['w'] ] = array($this->rank_step * $r, 'nB');
                   }
                   //常规英文或其它字符
                   else
                   {
-                        $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 's');
+                        $this->_property_result[ $w['w'] ] = array($this->rank_step*10, 'x');
                   }
               } //end not new word
               //增加靠前的词权重
@@ -1999,10 +2138,13 @@ class PhpAnalysis
             }
             $w = $this->ConvertEncoding('utf-8', _PA_UCS2_, $w);
             $k = $this->_get_index( $w );
+            $allk[ $k ][ $w ] = array($r, $a, $t, $l, $o);
+            /*
             if( isset($allk[ $k ]) )
                 $allk[ $k ][ $w ] = array($r, $a, $t, $l, $o);
             else
                 $allk[ $k ][ $w ] = array($r, $a, $t, $l, $o);
+            */
         }
         fclose( $fp );
         $fp = fopen($target_file, 'w') or die("build_dic create file: {$target_file} error!");
@@ -2055,8 +2197,8 @@ class PhpAnalysis
         {
             $FPD = fopen($dicfile, 'r') or die("Exportdict open dicfile:{$dicfile} error!");
         }
-        $fp = fopen($target_file, 'w') or die("Exportdict create targetfile: {$targetfile} error!");
-        chmod($target_file, 0666);
+        @chmod($target_file, 0666);
+        $words = $sort = [];
         for($i=0; $i <= $this->_mask_value; $i++)
         {
             //读取数据
@@ -2075,9 +2217,24 @@ class PhpAnalysis
             foreach($data as $k => $v)
             {
                 $k = $this->ConvertEncoding(_PA_UCS2_, 'utf-8', $k);
-                fwrite($fp, "{$k},{$v[0]},{$v[1]},{$v[2]},{$v[3]},{$v[4]},\n");
+                $h = substr($k, 0, 3);
+                $words[$h][$k] = "{$k},{$v[0]},{$v[1]},{$v[2]},{$v[3]},{$v[4]},\n";
+                $sort[$h][$k] = $k;
+                //fwrite($fp, "{$k},{$v[0]},{$v[1]},{$v[2]},{$v[3]},{$v[4]},\n");
             }
         }
+        $str = '';
+        foreach( $sort as $h => $w )
+        {
+            asort($sort[$h]);
+            foreach( $sort[$h] as $w => $c)
+            {
+                $str .= $words[$h][$w];
+            }
+        }
+        unset($words);
+        $fp = fopen($target_file, 'w') or die("Exportdict create targetfile: {$targetfile} error!");
+        fwrite($fp, $str);
         fclose( $fp );
         return true;
      }
