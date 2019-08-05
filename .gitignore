@@ -1,5 +1,10 @@
 .DS_Store
-*.bak.txt
-*_test.php
+*.bak.*
+*-bak-*
+*_bak.*
+*.test.*
+*-test-*
+*_test.*
 *.swo
+old/
 mydic.txt
