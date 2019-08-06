@@ -1744,7 +1744,7 @@ class PhpAnalysis
             }
         }
         //单字或多字组合
-        else if( !isset($this->_addon_dic['sn'][$next_w['w']]) && !isset($this->_addon_dic['se'][$next_w['w']]) )
+        else if( !isset($this->_addon_dic['s'][$next_w['w']]) && !isset($this->_addon_dic['se'][$next_w['w']]) )
         {
             $max = 5;
             $tmpword = $cur_w['w'].$next_w['w'];
@@ -1769,7 +1769,7 @@ class PhpAnalysis
                             $this->_finally_result[] = array('w' => $res[$i+1]['w'], 't' => 1, 'd' => 1, 'l' => strlen($res[$i+1]['w'])/2 );
                         }
                     }
-                    else if( $res[$i+1]['l'] == 1  && !isset($this->_addon_dic['sn'][$res[$i+1]['w']]) 
+                    else if( $res[$i+1]['l'] == 1  && !isset($this->_addon_dic['s'][$res[$i+1]['w']]) 
                       && !isset($this->_addon_dic['se'][$res[$i+1]['w']]) )
                     {
                         $tmpword .= $res[$i+1]['w'];
