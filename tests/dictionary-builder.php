@@ -3,7 +3,7 @@
 ini_set('memory_limit', '512M');
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
-require_once __DIR__.'/../src/Phpanalysis.php';
+require_once __DIR__.'/../src/PhpAnalysis.php';
 use Tutu\Phpanalysis;
 
 $normalDicSource = __DIR__.'/../dict/not-build/base_dic_full.txt';

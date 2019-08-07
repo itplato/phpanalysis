@@ -4,7 +4,7 @@ ini_set('display_errors', 'On');
 ini_set('memory_limit', '128M');
 error_reporting(E_ALL);
 
-require_once __DIR__.'/../src/Phpanalysis.php';
+require_once __DIR__.'/../src/PhpAnalysis.php';
 use Tutu\Phpanalysis;
 
 $t1 = $ntime = microtime(true);

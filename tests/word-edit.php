@@ -42,7 +42,7 @@ else if( $ac == 'explode' )
     
     //更新字典
     $normalDic = __DIR__.'/../dict/base_dic_full.dic';
-    require_once __DIR__.'/../src/Phpanalysis.php';
+    require_once __DIR__.'/../src/PhpAnalysis.php';
     $pa = Tutu\Phpanalysis::Instance()->AssistBuildDict( $dicfile, $normalDic);
     
     header('content-type:text/html;charset=utf-8');
