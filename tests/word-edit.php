@@ -1,8 +1,8 @@
 <?php
-require './lib/inc_unit.php';
-require './lib/tp.mysql.php';
-$dicfile = '../dict/not-build/db-explode.txt';
-$db = new TpMysql("127.0.0.1", 'root', '123456', 'phpanalysis');
+require __DIR__.'/lib/inc_unit.php';
+require __DIR__.'/lib/tp.mysql.php';
+$dicfile = __DIR__.'/../dict/not-build/db-explode.txt';
+$db = new TpMysql("127.0.0.1", 'nlp', 'nlp123456', 'nlp');
 $maxpage = 0;
 $pagesize = 500;
 
@@ -41,8 +41,8 @@ else if( $ac == 'explode' )
     file_put_contents($dicfile, rtrim($str));
     
     //更新字典
-    $normalDic = '../dict/base_dic_full.dic';
-    require_once '../src/Phpanalysis.php';
+    $normalDic = __DIR__.'/../dict/base_dic_full.dic';
+    require_once __DIR__.'/../src/Phpanalysis.php';
     $pa = Tutu\Phpanalysis::Instance()->AssistBuildDict( $dicfile, $normalDic);
     
     header('content-type:text/html;charset=utf-8');

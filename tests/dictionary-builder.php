@@ -3,13 +3,13 @@
 ini_set('memory_limit', '512M');
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
-require_once '../src/Phpanalysis.php';
+require_once __DIR__.'/../src/Phpanalysis.php';
 use Tutu\Phpanalysis;
 
-$normalDicSource = '../dict/not-build/base_dic_full.txt';
-$enDicSource = '../dict/not-build/english.txt';
-$normalDic = '../dict/base_dic_full.dic';
-$enDic = '../dict/base_dic_english.dic';
+$normalDicSource = __DIR__.'/../dict/not-build/base_dic_full.txt';
+$enDicSource = __DIR__.'/../dict/not-build/english.txt';
+$normalDic = __DIR__.'/../dict/base_dic_full.dic';
+$enDic = __DIR__.'/../dict/base_dic_english.dic';
 
 $ac = empty($_POST['ac']) ? '' : $_POST['ac'];
 $dictype = empty($_POST['dictype']) ? '' : $_POST['dictype'];

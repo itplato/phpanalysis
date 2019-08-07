@@ -4,7 +4,7 @@ ini_set('display_errors', 'On');
 ini_set('memory_limit', '128M');
 error_reporting(E_ALL);
 
-require_once '../src/Phpanalysis.php';
+require_once __DIR__.'/../src/Phpanalysis.php';
 use Tutu\Phpanalysis;
 
 $t1 = $ntime = microtime(true);
@@ -195,7 +195,7 @@ h5 { font-size: 1.1em }
 <body>
 <div id="main">
     <div class="row">  
-        <h3>{{title}} &nbsp; <a href="dictionary-builder.php"><span style="font-size:14px">[词典管理]</span></a></h3>
+        <h3>{{title}} &nbsp; <a href="word-edit.php" target="_blank"><span style="font-size:14px">[词典管理]</span></a></h3>
     </div>
 <div class="contents">
     <form id="form1" name="form1" method="post" action="?ac=done" style="margin:0px;padding:0px;line-height:24px;">
