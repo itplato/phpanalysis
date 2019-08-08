@@ -105,10 +105,10 @@ ARM内部人士透露，11月5日，ARM高级副总裁lanDrew参观了联想研�
 <head>
 <meta charset="utf-8">
 <title> Analysis testing... </title>
-<link rel="stylesheet" href="http://www.it.com/static/bootstrap.min.css">
-<script src="http://www.it.com/static/jquery.min.3.2.js"></script>
-<script src="http://www.it.com/static/bootstrap.min.4.1.js"></script>
-<script src="http://www.it.com/static/vue.min.2.2.js"></script>
+<link rel="stylesheet" href="static/bootstrap.min.css">
+<script src="static/jquery.min.3.2.js"></script>
+<script src="static/bootstrap.min.4.1.js"></script>
+<script src="static/vue.min.2.2.js"></script>
 <style>
 #main { width:1200px;margin:auto }
 .row { padding: 6px; }

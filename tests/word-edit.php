@@ -231,11 +231,11 @@ else
 <head>
 <meta charset=“utf-8” />
 <title> word-edit </title>
-<link rel="stylesheet" href="http://www.it.com/static/bootstrap.min.css">
-<script src="http://www.it.com/static/jquery.min.3.2.js"></script>
-<script src="http://www.it.com/static/bootstrap.min.4.1.js"></script>
-<script src="http://www.it.com/static/vue.min.2.2.js"></script>
-<script src="http://www.it.com/static/acunit.js"></script>
+<link rel="stylesheet" href="static/bootstrap.min.css">
+<script src="static/jquery.min.3.2.js"></script>
+<script src="static/bootstrap.min.4.1.js"></script>
+<script src="static/vue.min.2.2.js"></script>
+<script src="static/acunit.js"></script>
 <style>
   .pc {
        width: 1260px;
