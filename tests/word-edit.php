@@ -4,7 +4,7 @@ require __DIR__.'/lib/tp.mysql.php';
 $dicfile = __DIR__.'/../dict/not-build/db-explode.txt';
 $db = new TpMysql("127.0.0.1", 'nlp', 'nlp123456', 'nlp');
 $maxpage = 0;
-$pagesize = 500;
+$pagesize = 100;
 
 //查询百度
 $keyword = isset($_REQUEST['keyword']) ? $_REQUEST['keyword'] : '';
