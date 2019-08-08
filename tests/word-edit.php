@@ -323,9 +323,11 @@ else
         <label class="col-sm-2">
             <button type="submit" id="sb01" class="btn btn-primary">搜索</button>
             &nbsp; &nbsp;
-            <button type="button" id="sb02" onclick="location.href='word-edit.php'" class="btn"> 主页</button>
+            <button type="button" id="sb02" onclick="location.href='word-edit.php'" class="btn">主页</button>
             &nbsp; &nbsp;
-            <button type="button" id="sb03" onclick="window.open('word-edit.php?ac=explode');" class="btn">导出</button>
+            <button type="button" id="sb03" onclick="location.href='demo.php'" class="btn">演示</button>
+            &nbsp; &nbsp;
+            <button type="button" id="sb04" onclick="window.open('word-edit.php?ac=explode');" class="btn">导出</button>
         </label>
     </div>
 </div>

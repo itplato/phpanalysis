@@ -1,7 +1,7 @@
 <?php
 // 严格开发模式
 ini_set('display_errors', 'On');
-ini_set('memory_limit', '128M');
+ini_set('memory_limit', '512M');
 error_reporting(E_ALL);
 
 require_once __DIR__.'/../src/PhpAnalysis.php';
@@ -25,74 +25,75 @@ $memory_info = '';
 print_memory('没任何操作', $memory_info);
 
 $str = (isset($_POST['source']) ? $_POST['source'] : '');
-
-$loadtime = $endtime1  = $endtime2 = $slen = 0;
-
-$do_unit_single = $do_unit_special = $do_fork = true;
-
-$max_split = $do_prop = false;
-
-//限制字数
-$str = mb_substr($str, 0, 1024 * 3, 'UTF-8');
-
-if($str != '')
+$done = (isset($_REQUEST['done']) ? $_REQUEST['done'] : '');
+//演示
+if( $done != 'export' )
 {
-    //二元消岐
-    $do_fork = empty($_POST['do_fork']) ? false : true;
+    $loadtime = $endtime1  = $endtime2 = $slen = 0;
+    $do_unit_single = $do_unit_special = $do_fork = true;
+    $max_split = $do_prop = false;
+
+    //限制字数
+    $str = mb_substr($str, 0, 1024 * 3, 'UTF-8');
+
+    if($str != '')
+    {
+        //二元消岐
+        $do_fork = empty($_POST['do_fork']) ? false : true;
     
-    //专用词合并
-    $do_unit_special = empty($_POST['do_unit_special']) ? false : true;
+        //专用词合并
+        $do_unit_special = empty($_POST['do_unit_special']) ? false : true;
     
-    //合并单词
-    $do_unit_single = empty($_POST['do_unit_single']) ? false : true;
+        //合并单词
+        $do_unit_single = empty($_POST['do_unit_single']) ? false : true;
     
-    //多元切分
-    $max_split = empty($_POST['max_split']) ? false : true;
+        //多元切分
+        $max_split = empty($_POST['max_split']) ? false : true;
     
-    //词性标注
-    $do_prop = empty($_POST['do_prop']) ? false : true;
+        //词性标注
+        $do_prop = empty($_POST['do_prop']) ? false : true;
 
     
-    $tall = microtime(true);
+        $tall = microtime(true);
     
-    //初始化类
-    $pa = PhpAnalysis::Instance();
-    print_memory('初始化对象', $memory_info);
+        //初始化类
+        $pa = PhpAnalysis::Instance();
+        print_memory('初始化对象', $memory_info);
     
-    //执行分词
-    $pa->SetOptions( $do_unit_special, $do_unit_single, $max_split, $do_fork );
-    $pa->SetSource( $str )->Delimiter(' ')->Exec();
-    print_memory('执行分词', $memory_info);
+        //执行分词
+        $pa->SetOptions( $do_unit_special, $do_unit_single, $max_split, $do_fork );
+        $pa->SetSource( $str )->Delimiter(' ')->Exec();
+        print_memory('执行分词', $memory_info);
     
-    //$rs = $pa->AssistGetSimple();
-    //echo "<div style='width:1000px'>", $rs, '</div>';
+        //$rs = $pa->AssistGetSimple();
+        //echo "<div style='width:1000px'>", $rs, '</div>';
 
-    $rank_result = $pa->GetTags(20, true);
+        $rank_result = $pa->GetTags(20, true);
         
-    //带词性标注
-    if( $do_prop ) {
-        $result = json_encode($pa->GetResultProperty( true, 2 ));
-    } else {
-        $result = json_encode($pa->GetResult( 2 ));
+        //带词性标注
+        if( $do_prop ) {
+            $result = json_encode($pa->GetResultProperty( true, 2 ));
+        } else {
+            $result = json_encode($pa->GetResult( 2 ));
+        }
+    
+        print_memory('输出分词结果', $memory_info);
+    
+        $pa_foundWordStr = $pa->GetNewWords();
+    
+        $pa_ambiguity_words = $pa->Delimiter('; ')->AssistGetAmbiguitys();
+    
+        $t2 = microtime(true);
+        $endtime = sprintf('%0.4f', $t2 - $t1);
+    
+        $slen = strlen($str);
+        $slen = sprintf('%0.2f', $slen/1024);
+    
+        $pa = '';
+    
     }
-    
-    print_memory('输出分词结果', $memory_info);
-    
-    $pa_foundWordStr = $pa->GetNewWords();
-    
-    $pa_ambiguity_words = $pa->Delimiter('; ')->AssistGetAmbiguitys();
-    
-    $t2 = microtime(true);
-    $endtime = sprintf('%0.4f', $t2 - $t1);
-    
-    $slen = strlen($str);
-    $slen = sprintf('%0.2f', $slen/1024);
-    
-    $pa = '';
-    
-}
 
-$teststr = "2010年1月，美国国际消费电子展 (CES)上，联想将展出一款基于ARM架构的新产品，这有可能是传统四大PC厂商首次推出的基于ARM架构的消费电子产品，也意味着在移动互联网和产业融合趋势下，传统的PC芯片霸主英特尔正在遭遇挑战。
+    $teststr = "2010年1月，美国国际消费电子展 (CES)上，联想将展出一款基于ARM架构的新产品，这有可能是传统四大PC厂商首次推出的基于ARM架构的消费电子产品，也意味着在移动互联网和产业融合趋势下，传统的PC芯片霸主英特尔正在遭遇挑战。
 11月12日，联想集团副总裁兼中国区总裁夏立向本报证实，联想基于ARM架构的新产品正在筹备中。
 英特尔新闻发言人孟轶嘉表示，对第三方合作伙伴信息不便评论。
 ARM内部人士透露，11月5日，ARM高级副总裁lanDrew参观了联想研究院，拜访了联想负责消费产品的负责人，进一步商讨基于ARM架构的新产品。ARM是英国芯片设计厂商，全球几乎95%的手机都采用ARM设计的芯片。
@@ -195,7 +196,10 @@ h5 { font-size: 1.1em }
 <body>
 <div id="main">
     <div class="row">  
-        <h3>{{title}} &nbsp; <a href="word-edit.php" target="_blank"><span style="font-size:14px">[词典管理]</span></a></h3>
+        <h3>{{title}} &nbsp; 
+            <a href="word-edit.php"><span style="font-size:14px">[词典管理]</span></a>
+            <a href="demo.php?done=export"><span style="font-size:14px">[词典编译/导出]</span></a>
+        </h3>
     </div>
 <div class="contents">
     <form id="form1" name="form1" method="post" action="?ac=done" style="margin:0px;padding:0px;line-height:24px;">
@@ -311,4 +315,150 @@ $(function(){
 </script>
 </body>
 </html>
+<?php
+}
+//词典编译
+//$done == 'export'
+else
+{
+    $normalDicSource = '../dict/not-build/db-explode.txt';
+    $enDicSource = '../dict/not-build/english.txt';
+    $normalDic = '../dict/base_dic_full.dic';
+    $enDic = '../dict/base_dic_english.dic';
 
+    $ac = empty($_POST['ac']) ? '' : $_POST['ac'];
+    $dictype = empty($_POST['dictype']) ? '' : $_POST['dictype'];
+
+    if( $ac == 'make' )
+    {
+        $targetfile = $dictype==1 ? $normalDic  : $enDic;
+        $sourcefile = $_POST['sourcefile'];
+    
+        $pa = PhpAnalysis::Instance()->AssistBuildDict( $sourcefile, $targetfile );
+    
+        echo "完成词典创建: {$sourcefile} =&gt; {$targetfile} ";
+        exit();
+    }
+    else if( $ac=='export' )
+    {
+        $dicfile = ($dictype==1 ? $normalDic : $enDic);
+        $sourcefile = $_POST['sourcefile'];
+    
+        PhpAnalysis::Instance()->AssistExportDict($sourcefile, $dicfile);
+    
+        echo "完成反编译词典文件，生成的文件为：{$sourcefile}！";
+        exit();
+    }
+?>
+<!DOCTYPE html>
+<html>
+<header>
+<meta charset="utf-8" />
+<title> 词典管理 </title>
+<link rel="stylesheet" href="static/bootstrap.min.css">
+<script src="static/jquery.min.3.2.js"></script>
+<script src="static/bootstrap.min.4.1.js"></script>
+<script src="static/vue.min.2.2.js"></script>
+<style>
+#main { width:1200px;margin:auto }
+.row { padding: 6px; }
+label { margin-right:6px;}
+.contents { 
+    background: #fafafa; 
+    padding:18px; 
+    border:1px solid  #eaeaea; 
+    border-radius:10px;
+    margin-bottom:8px;
+}
+.contents2 { 
+    padding:18px; 
+    border:1px solid  #eaeaea; 
+    border-radius:10px;
+    margin-bottom:8px;
+}
+* {
+  font-size:1em;  
+}
+ .title {
+    font-weight:bold;
+    border-bottom:1px solid #ccc;
+    padding-bottom:6px;
+ }
+ .title2 {
+    font-weight:bold;
+    padding-bottom:6px;
+ }
+ .info {
+    font-size:12px;
+    font-weight:normal;
+    color:#666;
+ }
+ .row {  padding:10px 15px; }
+</style>
+<script language="javascript">
+    var files = ["<?php echo $normalDicSource; ?>", "<?php echo $enDicSource; ?>"];
+    function changeReadFile( ctype ) {
+        document.getElementById('sourcefile').value = files[ctype];
+    }
+</script>
+</header>
+<body>
+<div id="main">
+<div class="row">  
+    <h3>编译/导出词条 &nbsp; 
+        <a href="demo.php"><span style="font-size:14px">[分词演示]</span></a>
+        <a href="word-edit.php"><span style="font-size:14px">[词典管理]</span></a>
+    </h3>
+</div>
+<div class="contents">
+<div class="title">
+根据源文件创建分词词典：<span class="info">(源文件词条格式： 词条,频率,词性,行业标识,降权情感指示,附加1,附加2 后四个值用于研究用途)</span> 
+</div>
+<form name="form1" action="?" method="POST" enctype="application/x-www-form-urlencoded" target="sta">
+    <input type="hidden" name="done" value="export">
+    <input type="hidden" name="ac" value="make">
+    <div class="row">
+        源文件： <input type="text" name="sourcefile" id="sourcefile" value="<?php echo $normalDicSource; ?>" style="width:680px;">
+    </div>
+    <div class="row">
+    创建词典类型：<label><input type="radio" name="dictype" onchange="changeReadFile(0)" value="1" checked> 通用分词(base_dic_full.dic)</label> 
+    <label><input type="radio" name="dictype" value="2" onchange="changeReadFile(1)"> 英语词典(base_dic_english.dic)</label>
+    </div>
+    <div class="row">
+        <button type="submit">开始操作</button>
+    </div>
+</form>
+</div>
+
+<div class="contents">
+<div class="title">
+    根据分词典反编译出源文件：
+</div>
+<form name="form1" action="?" method="POST" enctype="application/x-www-form-urlencoded" target="sta">
+    <input type="hidden" name="done" value="export">
+    <input type="hidden" name="ac" value="export">
+    <div class="row">
+        词典类型： 
+        <label><input type="radio" name="dictype" value="1" checked> 通用分词(base_dic_full.dic)</label> 
+        <label><input type="radio" name="dictype" value="2"> 英语词典(base_dic_english.dic)</label>
+    </div>
+    <div class="row">
+        保存源文件： <input type="text" name="sourcefile" value="../dict/not-build/mydic.txt" style="width:650px;">
+    </div>
+    <div class="row">
+        <button type="submit">开始操作</button>
+    </div> 
+</form>
+</div>
+<div class="hgroup">
+<div class="title2">
+    操作状态：
+</div>
+<iframe style="width:1200px;height:200px;" border="0" frameborder="1" name="sta"></iframe>    
+</div>
+</div>
+<body>
+</html>
+<?php
+}
+?>
