@@ -59,15 +59,14 @@ $regtype = isset($_REQUEST['regtype']) ? $_REQUEST['regtype'] : 0;
 $where = '';
 //-------------------------------
 // 关键字规则：
-// |type  |#trade |!add_prop  |@add_info   :长度(可叠加，只能放在结尾，如：人|#A:12)
-// 
+// |type  |#trade |!add_prop  |@add_info   :|=长度(可叠加，只能放在结尾，如：人|#A:12)
+// ^ 等于限定符，放在类型结尾，如 |n^ |#a^
 //-------------------------------
 if( $keyword != '' )
 {
     $ks = explode('|', $keyword);
     $keyword = $ks[0];
     if( preg_match("/[a-z]/i", $keyword) ) {
-        
         $where = $regtype == -1 ? " `type` = '{$keyword}' " : " LOCATE('{$keyword}', `type`) ";
     }
     else if( $regtype == -1 ) {
@@ -96,20 +95,39 @@ if( $keyword != '' )
             if( preg_match('/#/', $ks[1]) )
             {
                 $ks_l = str_replace('#', '', $ks[1]);
-                $where .= $_link." LOCATE('{$ks_l}', `trade`) ";
+                if( strpos($ks_l, '^') !== false ) {
+                    $ks_l = str_replace('^', '', $ks_l);
+                    $where .= $_link." LOCATE('{$ks_l}', `trade` = '{$ks_l}' ";
+                } else {
+                    $where .= $_link." LOCATE('{$ks_l}', `trade`) ";
+                }
             }
             else if( preg_match('/!/', $ks[1]) )
             {
                 $ks_l = str_replace('!', '', $ks[1]);
-                $where .= $_link." LOCATE('{$ks_l}', `add_prop`) ";
+                if( strpos($ks_l, '^') !== false ) {
+                    $ks_l = str_replace('^', '', $ks_l);
+                    $where .= $_link." LOCATE('{$ks_l}', `add_prop` = '{$ks_l}' ";
+                } else {
+                    $where .= $_link." LOCATE('{$ks_l}', `add_prop`) ";
+                }
             }
-            else if( $ks[1]=='@' )
+            else if( preg_match('/@/', $ks[1]) )
             {
-                $where .= $_link." LOCATE('@', `add_info`) ";
+                if( $ks[1]=='@' ) {
+                    $where .= $_link." LOCATE('@', `add_info`) ";
+                } else {
+                    $where .= $_link." LOCATE('".str_replace('@', '', $ks[1])."', `add_info`) ";
+                }
             }
             else
             {
-                $where .= $_link." LOCATE('{$ks[1]}', `type`) ";
+                if( strpos($ks[1], '^') !== false ) {
+                    $ks_l = str_replace('^', '', $ks[1]);
+                    $where .= $_link." `type` = '{$ks_l}' ";
+                } else {
+                    $where .= $_link." LOCATE('{$ks[1]}', `type`) ";
+                }
             }
         }
         $keyword = join('|', $start_ks);
